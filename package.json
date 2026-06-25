@@ -1,0 +1,42 @@
+{
+  "name": "pi-mistral-subscription",
+  "version": "0.1.0",
+  "description": "Pi package providing a native Mistral subscription provider with Mistral AI Studio browser sign-in.",
+  "license": "MIT",
+  "type": "module",
+  "keywords": [
+    "pi-package",
+    "mistral",
+    "oauth"
+  ],
+  "files": [
+    "extensions/",
+    "src/",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "pi": {
+    "extensions": [
+      "./extensions/mistral-subscription"
+    ]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "scripts": {
+    "test": "node --test --import tsx \"tests/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit",
+    "check": "npm test && npm run typecheck"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-ai": "^0.79.9",
+    "@earendil-works/pi-coding-agent": "^0.79.9",
+    "@types/node": "~22.19.0",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3"
+  }
+}
