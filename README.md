@@ -6,7 +6,7 @@ It registers `mistral-subscription`, adds `/login` browser sign-in through Mistr
 
 ## Install
 
-Requires Pi 1.1.0 or newer.
+Requires Pi 0.99.0 or newer.
 
 Install directly from this public GitHub repo:
 
@@ -68,7 +68,7 @@ Large 4 always uses `reasoning_effort: "high"` in this package,
 including when Pi's thinking setting is off.
 Only high is advertised as a selectable thinking level;
 other thinking settings do not change the request effort.
-This uses Pi 1.1+'s native thinking-level mapping,
+This uses Pi 0.99+'s native thinking-level mapping,
 without a custom streaming adapter.
 Fixed high is a package choice,
 not a limitation of Mistral's API,
@@ -96,7 +96,7 @@ model("<api-model-id>", "<Display Name> (Mistral subscription)", contextWindow, 
 - **`api-model-id`**: the exact id Mistral's API accepts, from the [Mistral models overview](https://docs.mistral.ai/models). Use a pinned version (`ministral-8b-2512`) to keep behavior stable, or a `-latest` alias to follow upgrades.
 - **`contextWindow` / `maxTokens`**: take these from Mistral's docs. pi-ai's built-in `mistral` catalog (`node_modules/@earendil-works/pi-ai/dist/models.generated.js`) is a handy cross-check.
 - **`reasoning`**: set it to `true` only for models that support `reasoning_effort`.
-  Pi 1.1+'s native `mistral-conversations` provider uses `thinkingLevelMap`
+  Pi 0.99+'s native `mistral-conversations` provider uses `thinkingLevelMap`
   to select `reasoning_effort`,
   rather than requiring a hardcoded list of model IDs.
   Reasoning models without a map use legacy `prompt_mode` instead.

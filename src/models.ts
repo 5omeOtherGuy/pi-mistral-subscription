@@ -38,7 +38,7 @@ function model(
 
 // To add a model, append a `model(...)` entry below. See "Adding models" in README.md.
 // `id` is sent verbatim to the Mistral API. Reasoning models use thinkingLevelMap
-// to select reasoning_effort in Pi 1.1+ (see tests/mistral-stream.test.ts).
+// to select reasoning_effort in Pi 0.99+ (see tests/mistral-stream.test.ts).
 export const MODELS = [
   model("mistral-medium-3.5", "Mistral Medium 3.5 (Mistral subscription)", 262144, 262144, true, TEXT_AND_IMAGE_INPUT),
   model("mistral-small-latest", "Mistral Small 4 (Mistral subscription)", 256000, 256000, true, TEXT_AND_IMAGE_INPUT),

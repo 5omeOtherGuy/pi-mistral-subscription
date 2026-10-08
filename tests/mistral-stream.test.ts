@@ -35,7 +35,7 @@ async function requestPayload(
       provider: MISTRAL_SUBSCRIPTION_PROVIDER_ID,
       baseUrl: `http://127.0.0.1:${address.port}`,
     };
-    // Pi 1.1 passes a normalized transcript, including string-valued system
+    // Pi 0.99+ passes a normalized transcript, including string-valued system
     // messages. Passing this to the old provider caused content.filter errors.
     const context = normalizeContext({
       systemPrompt: "You are running a connectivity test.",
