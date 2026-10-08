@@ -3,12 +3,6 @@ import { test } from "node:test";
 
 import { MISTRAL_API_ID, MODELS } from "../src/models.ts";
 
-// Reasoning ids pi-ai's mistral-conversations provider sends `reasoning_effort` for.
-// Other reasoning models fall back to `prompt_mode: "reasoning"`, which the current
-// Mistral lineup does not use. Large 4 is handled by our fixed-high adapter,
-// whose wire requests are covered in mistral-stream.test.ts.
-const REASONING_EFFORT_IDS = new Set(["mistral-medium-3.5", "mistral-small-latest", "mistral-small-2603"]);
-
 test("model ids are unique", () => {
   const ids = MODELS.map((model) => model.id);
   assert.equal(new Set(ids).size, ids.length);
@@ -24,10 +18,9 @@ test("every model is well-formed", () => {
   }
 });
 
-test("reasoning models use native reasoning_effort ids or the Large 4 adapter", () => {
+test("reasoning models declare native reasoning_effort mappings", () => {
   for (const model of MODELS) {
     if (model.reasoning) {
-      assert.ok(REASONING_EFFORT_IDS.has(model.id) || model.id === "mistral-large-4", `${model.id} has no reasoning_effort support`);
       assert.ok(model.thinkingLevelMap, model.id);
     } else {
       assert.equal(model.thinkingLevelMap, undefined, model.id);
@@ -44,4 +37,5 @@ test("Large 4 preview supports images with fixed high reasoning", () => {
   assert.deepEqual(model.input, ["text", "image"]);
   assert.equal(model.reasoning, true);
   assert.equal(model.thinkingLevelMap?.high, "high");
+  assert.equal(model.thinkingLevelMap?.off, "high", "native streaming uses high even when thinking is off");
 });

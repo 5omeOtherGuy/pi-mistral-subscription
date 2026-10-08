@@ -2,18 +2,16 @@ import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { test } from "node:test";
 
-import type { Model, SimpleStreamOptions } from "@earendil-works/pi-ai";
+import { normalizeContext, type Model, type SimpleStreamOptions } from "@earendil-works/pi-ai";
+import { streamSimple } from "@earendil-works/pi-ai/api/mistral-conversations";
 import type { ExtensionAPI, ProviderConfig } from "@earendil-works/pi-coding-agent";
 
 import mistralSubscriptionExtension from "../extensions/mistral-subscription/index.ts";
-import { streamMistralSubscription } from "../src/mistral-stream.ts";
-
 import { MISTRAL_SUBSCRIPTION_PROVIDER_ID, MODELS } from "../src/models.ts";
 
 async function requestPayload(
   id: string,
   options?: SimpleStreamOptions,
-  provider = MISTRAL_SUBSCRIPTION_PROVIDER_ID,
 ): Promise<Record<string, unknown>> {
   let payload: Record<string, unknown> | undefined;
   const server = createServer(async (req, res) => {
@@ -34,12 +32,18 @@ async function requestPayload(
       api: "mistral-conversations",
       compat: undefined,
       id,
-      provider,
+      provider: MISTRAL_SUBSCRIPTION_PROVIDER_ID,
       baseUrl: `http://127.0.0.1:${address.port}`,
     };
-    const result = await streamMistralSubscription(model, {
+    // Pi 1.1 passes a normalized transcript, including string-valued system
+    // messages. Passing this to the old provider caused content.filter errors.
+    const context = normalizeContext({
+      systemPrompt: "You are running a connectivity test.",
       messages: [{ role: "user", content: "Hello", timestamp: 0 }],
-    }, { apiKey: "placeholder-test-key", ...options }).result();
+    });
+    const result = await streamSimple(model, context, {
+      apiKey: "placeholder-test-key", ...options,
+    }).result();
     assert.equal(result.stopReason, "stop", result.errorMessage);
     assert.ok(payload, "request reached the local test server");
     return payload;
@@ -68,7 +72,7 @@ test("Large 4 preserves request options and async payload hooks", async () => {
       const original = value as Record<string, unknown>;
       assert.equal(original.reasoningEffort, "high");
       assert.equal(original.promptMode, undefined);
-      return { ...original, temperature: 0.3, reasoningEffort: "none", promptMode: "reasoning" };
+      return { ...original, temperature: 0.3 };
     },
   });
   assert.ok(hookCalled);
@@ -86,12 +90,7 @@ test("existing subscription models retain their reasoning behavior", async () =>
   assert.equal(large.prompt_mode, undefined);
 });
 
-test("Large 4 on other providers is not forced to high", async () => {
-  const payload = await requestPayload("mistral-large-4", undefined, "mistral");
-  assert.equal(payload.reasoning_effort, undefined);
-});
-
-test("extension registers the fixed-high streaming adapter", () => {
+test("extension delegates to Pi's native streaming implementation", () => {
   let registration: ProviderConfig | undefined;
   mistralSubscriptionExtension({
     registerProvider: (id: string, config: ProviderConfig) => {
@@ -101,6 +100,7 @@ test("extension registers the fixed-high streaming adapter", () => {
     registerCommand: () => {},
   } as unknown as ExtensionAPI);
   assert.ok(registration);
-  assert.equal(registration.streamSimple, streamMistralSubscription);
+  assert.equal(registration.api, "mistral-conversations");
+  assert.equal(registration.streamSimple, undefined);
   assert.ok(registration.models?.some((model) => model.id === "mistral-large-4"));
 });
