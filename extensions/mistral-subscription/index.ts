@@ -2,6 +2,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 import { MISTRAL_BASE_URL, MISTRAL_SUBSCRIPTION_PROVIDER_ID, MODELS } from "../../src/models.ts";
 import { mistralOAuth } from "../../src/mistral-oauth.ts";
+import { streamMistralSubscription } from "../../src/mistral-stream.ts";
 
 export default function mistralSubscriptionExtension(pi: ExtensionAPI) {
   pi.registerProvider(MISTRAL_SUBSCRIPTION_PROVIDER_ID, {
@@ -9,6 +10,7 @@ export default function mistralSubscriptionExtension(pi: ExtensionAPI) {
     baseUrl: MISTRAL_BASE_URL,
     api: "mistral-conversations",
     authHeader: true,
+    streamSimple: streamMistralSubscription,
     models: [...MODELS],
     oauth: mistralOAuth,
   });
