@@ -9,6 +9,7 @@ const TEXT_AND_IMAGE_INPUT = ["text", "image"] as const;
 const TEXT_INPUT = ["text"] as const;
 // Maps Pi thinking levels to Mistral's `reasoning_effort` values ("none" | "high").
 const MISTRAL_THINKING_LEVEL_MAP = {
+  off: "none",
   low: "none",
   medium: "high",
   high: "high",

@@ -83,9 +83,20 @@ test("Large 4 preserves request options and async payload hooks", async () => {
   assert.equal(payload.prompt_mode, undefined);
 });
 
-test("existing subscription models retain their reasoning behavior", async () => {
-  const medium = await requestPayload("mistral-medium-3.5", { reasoning: "low" });
-  assert.equal(medium.reasoning_effort, "none");
+test("Medium and Small send explicit effort for off and preserve other mappings", async () => {
+  for (const id of ["mistral-medium-3.5", "mistral-small-latest"]) {
+    for (const [reasoning, effort] of [
+      [undefined, "none"], ["low", "none"], ["medium", "high"], ["high", "high"], ["xhigh", "high"],
+    ] as const) {
+      const payload = await requestPayload(id, { reasoning });
+      assert.equal(payload.model, id);
+      assert.equal(payload.reasoning_effort, effort, `${id} thinking ${reasoning ?? "off"}`);
+      assert.equal(payload.prompt_mode, undefined);
+    }
+  }
+});
+
+test("non-reasoning models omit reasoning parameters", async () => {
   const large = await requestPayload("mistral-large-latest");
   assert.equal(large.reasoning_effort, undefined);
   assert.equal(large.prompt_mode, undefined);
