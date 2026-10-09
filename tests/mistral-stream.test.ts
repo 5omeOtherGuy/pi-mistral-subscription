@@ -52,11 +52,11 @@ async function requestPayload(
   }
 }
 
-for (const reasoning of [undefined, "low", "high"] as const) {
-  test(`Large 4 sends fixed high reasoning with thinking ${reasoning ?? "off"}`, async () => {
+for (const [reasoning, effort] of [[undefined, "none"], ["high", "high"]] as const) {
+  test(`Large 4 sends ${effort} reasoning with thinking ${reasoning ?? "off"}`, async () => {
     const payload = await requestPayload("mistral-large-4", { reasoning });
     assert.equal(payload.model, "mistral-large-4");
-    assert.equal(payload.reasoning_effort, "high");
+    assert.equal(payload.reasoning_effort, effort);
     assert.equal(payload.prompt_mode, undefined);
   });
 }
@@ -64,6 +64,7 @@ for (const reasoning of [undefined, "low", "high"] as const) {
 test("Large 4 preserves request options and async payload hooks", async () => {
   let hookCalled = false;
   const payload = await requestPayload("mistral-large-4", {
+    reasoning: "high",
     maxTokens: 512,
     temperature: 0.2,
     onPayload: async (value, model) => {
