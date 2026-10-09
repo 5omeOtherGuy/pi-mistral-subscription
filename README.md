@@ -58,6 +58,10 @@ Choose **Mistral subscription (Mistral AI Studio)**, complete the browser sign-i
 
 Pick one with `--model <id>` or switch inside Pi with `/model`. Which models your key can call depends on your Mistral plan. If a model returns an auth or "model not found" error, fall back to `mistral-medium-3.5`.
 
+For Medium 3.5, Small 4, and Large 4, `--thinking off` explicitly sends
+`reasoning_effort: "none"` rather than relying on the server default.
+Medium and Small retain their existing mappings for other thinking levels.
+
 ### Mistral Large 4 preview
 
 ```sh
@@ -111,8 +115,8 @@ model("<api-model-id>", "<Display Name> (Mistral subscription)", contextWindow, 
   to select `reasoning_effort`,
   rather than requiring a hardcoded list of model IDs.
   Reasoning models without a map use legacy `prompt_mode` instead.
-  The helper supplies a `none`/`high` map;
-  Large 4 overrides it to offer only off/high and explicitly send `none` for off.
+  The helper supplies a `none`/`high` map with explicit `none` for off;
+  Large 4 overrides it to offer only off/high.
   Verify new mappings in `tests/mistral-stream.test.ts`.
 - **Input**: use `TEXT_AND_IMAGE_INPUT` for vision models and `TEXT_INPUT` otherwise.
 
