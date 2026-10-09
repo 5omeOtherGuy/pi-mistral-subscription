@@ -22,7 +22,7 @@ function model(
   maxTokens: number,
   reasoning: boolean,
   input: readonly ("text" | "image")[],
-): ProviderModelConfig {
+): Extract<ProviderModelConfig, { reasoning: boolean }> {
   return {
     id,
     api: MISTRAL_API_ID,
@@ -37,11 +37,18 @@ function model(
 }
 
 // To add a model, append a `model(...)` entry below. See "Adding models" in README.md.
-// `id` is sent verbatim to the Mistral API. Only mark `reasoning: true` for ids that
-// pi-ai's mistral-conversations provider knows how to drive (see tests/models.test.ts).
+// `id` is sent verbatim to the Mistral API. Reasoning models use thinkingLevelMap
+// to select reasoning_effort in Pi 0.99+ (see tests/mistral-stream.test.ts).
 export const MODELS = [
   model("mistral-medium-3.5", "Mistral Medium 3.5 (Mistral subscription)", 262144, 262144, true, TEXT_AND_IMAGE_INPUT),
   model("mistral-small-latest", "Mistral Small 4 (Mistral subscription)", 256000, 256000, true, TEXT_AND_IMAGE_INPUT),
+  // The model card publishes a 1M context, not a separate output limit.
+  // Use a conservative local 32k output cap until that limit is documented.
+  {
+    ...model("mistral-large-4", "Mistral Large 4 Preview (Mistral subscription)", 1_000_000, 32_768, true, TEXT_AND_IMAGE_INPUT),
+    // Requests always use high, including when Pi thinking is off.
+    thinkingLevelMap: { off: "high", minimal: null, low: null, medium: null, high: "high", xhigh: null, max: null },
+  },
   model("mistral-large-latest", "Mistral Large 3 (Mistral subscription)", 262144, 262144, false, TEXT_AND_IMAGE_INPUT),
   model("ministral-14b-2512", "Ministral 3 14B (Mistral subscription)", 262144, 262144, false, TEXT_AND_IMAGE_INPUT),
   model("ministral-8b-2512", "Ministral 3 8B (Mistral subscription)", 262144, 262144, false, TEXT_AND_IMAGE_INPUT),

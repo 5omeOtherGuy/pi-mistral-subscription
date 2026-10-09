@@ -6,6 +6,8 @@ It registers `mistral-subscription`, adds `/login` browser sign-in through Mistr
 
 ## Install
 
+Requires Pi 0.99.0 or newer.
+
 Install directly from this public GitHub repo:
 
 ```sh
@@ -47,6 +49,7 @@ Choose **Mistral subscription (Mistral AI Studio)**, complete the browser sign-i
 | --- | --- | --- | --- | --- |
 | `mistral-medium-3.5` | Mistral Medium 3.5 (default in Mistral Vibe) | 262k | yes | yes |
 | `mistral-small-latest` | Mistral Small 4 | 256k | yes | yes |
+| `mistral-large-4` | Mistral Large 4 Preview | 1M | fixed high | yes |
 | `mistral-large-latest` | Mistral Large 3 | 262k | no | yes |
 | `ministral-14b-2512` | Ministral 3 14B | 262k | no | yes |
 | `ministral-8b-2512` | Ministral 3 8B | 262k | no | yes |
@@ -54,6 +57,33 @@ Choose **Mistral subscription (Mistral AI Studio)**, complete the browser sign-i
 | `devstral-small-latest` | Devstral Small (legacy, removed from Mistral Vibe) | 128k | no | no |
 
 Pick one with `--model <id>` or switch inside Pi with `/model`. Which models your key can call depends on your Mistral plan. If a model returns an auth or "model not found" error, fall back to `mistral-medium-3.5`.
+
+### Mistral Large 4 preview
+
+```sh
+pi --provider mistral-subscription --model mistral-large-4
+```
+
+Large 4 always uses `reasoning_effort: "high"` in this package,
+including when Pi's thinking setting is off.
+Only high is advertised as a selectable thinking level;
+other thinking settings do not change the request effort.
+This uses Pi 0.99+'s native thinking-level mapping,
+without a custom streaming adapter.
+Fixed high is a package choice,
+not a limitation of Mistral's API,
+which also supports `none`.
+Other models retain their existing reasoning mappings.
+
+The [Mistral model card](https://docs.mistral.ai/models/mistral-large-4-0)
+documents the API ID, image support, and a 1M-token context window.
+The catalog uses 1,000,000 tokens conservatively
+and a local default output cap of 32,768 tokens,
+not a claimed API maximum;
+a separate output limit was not available in the model card.
+See [Mistral's reasoning documentation](https://docs.mistral.ai/studio/conversations/reasoning)
+for the supported effort values.
+Preview access still depends on your subscription.
 
 ## Adding models
 
@@ -65,7 +95,14 @@ model("<api-model-id>", "<Display Name> (Mistral subscription)", contextWindow, 
 
 - **`api-model-id`**: the exact id Mistral's API accepts, from the [Mistral models overview](https://docs.mistral.ai/models). Use a pinned version (`ministral-8b-2512`) to keep behavior stable, or a `-latest` alias to follow upgrades.
 - **`contextWindow` / `maxTokens`**: take these from Mistral's docs. pi-ai's built-in `mistral` catalog (`node_modules/@earendil-works/pi-ai/dist/models.generated.js`) is a handy cross-check.
-- **`reasoning`**: set it to `true` only for models that support `reasoning_effort`. pi-ai's `mistral-conversations` provider sends that parameter only for the ids it knows (`usesReasoningEffort` in its Mistral provider). A reasoning model with any other id gets the legacy `prompt_mode` request instead. If you add a new reasoning id, update `REASONING_EFFORT_IDS` in `tests/models.test.ts` after confirming pi-ai supports it.
+- **`reasoning`**: set it to `true` only for models that support `reasoning_effort`.
+  Pi 0.99+'s native `mistral-conversations` provider uses `thinkingLevelMap`
+  to select `reasoning_effort`,
+  rather than requiring a hardcoded list of model IDs.
+  Reasoning models without a map use legacy `prompt_mode` instead.
+  The helper supplies a `none`/`high` map;
+  Large 4 overrides it to select high even when thinking is off.
+  Verify new mappings in `tests/mistral-stream.test.ts`.
 - **Input**: use `TEXT_AND_IMAGE_INPUT` for vision models and `TEXT_INPUT` otherwise.
 
 Then add the model to the table above and run `npm run check`. To try it for real, sign in with `/login` and run:
@@ -92,7 +129,10 @@ Project layout:
 - `extensions/mistral-subscription/index.ts`: the Pi extension entry point. It registers the provider and the `/mistral-subscription-status` command.
 - `src/models.ts`: the model catalog (see [Adding models](#adding-models)).
 - `src/mistral-oauth.ts`: the `/login` flow. It mirrors Mistral Vibe's browser sign-in: it starts a sign-in process on `console.mistral.ai`, polls until you finish in the browser, then exchanges the result for an API key that Pi stores.
-- `tests/`: `node:test` suites run through `tsx`. The OAuth tests inject a fake `fetch`, so they never touch the network.
+- `tests/`: `node:test` suites run through `tsx`.
+  The OAuth tests inject a fake `fetch`.
+  Streaming tests use a loopback HTTP server to verify serialized requests;
+  no tests contact Mistral or use real credentials.
 
 Useful references when Mistral changes things:
 
