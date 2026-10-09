@@ -49,7 +49,7 @@ Choose **Mistral subscription (Mistral AI Studio)**, complete the browser sign-i
 | --- | --- | --- | --- | --- |
 | `mistral-medium-3.5` | Mistral Medium 3.5 (default in Mistral Vibe) | 262k | yes | yes |
 | `mistral-small-latest` | Mistral Small 4 | 256k | yes | yes |
-| `mistral-large-4` | Mistral Large 4 Preview | 1M | fixed high | yes |
+| `mistral-large-4` | Mistral Large 4 Preview | 1M | off / high | yes |
 | `mistral-large-latest` | Mistral Large 3 | 262k | no | yes |
 | `ministral-14b-2512` | Ministral 3 14B | 262k | no | yes |
 | `ministral-8b-2512` | Ministral 3 8B | 262k | no | yes |
@@ -61,19 +61,30 @@ Pick one with `--model <id>` or switch inside Pi with `/model`. Which models you
 ### Mistral Large 4 preview
 
 ```sh
-pi --provider mistral-subscription --model mistral-large-4
+pi --provider mistral-subscription --model mistral-large-4 --thinking high
+# Minimal thinking, without a reasoning trace:
+pi --provider mistral-subscription --model mistral-large-4 --thinking off
 ```
 
-Large 4 always uses `reasoning_effort: "high"` in this package,
-including when Pi's thinking setting is off.
-Only high is advertised as a selectable thinking level;
-other thinking settings do not change the request effort.
-This uses Pi 0.99+'s native thinking-level mapping,
-without a custom streaming adapter.
-Fixed high is a package choice,
-not a limitation of Mistral's API,
-which also supports `none`.
+Large 4 exposes both distinct reasoning modes supported by Mistral:
+
+- **off** sends `reasoning_effort: "none"`: minimal thinking, no reasoning trace.
+- **high** sends `reasoning_effort: "high"`: full reasoning trace.
+
+There are no separate low, medium, or maximum API budgets for this model.
+Pi offers off and high using its native thinking-level mapping,
+without a custom streaming adapter. Off explicitly sends `none`,
+rather than omitting the field and leaving the server default in control.
 Other models retain their existing reasoning mappings.
+
+Mistral Vibe 2.26.1's [Mistral adapter](https://github.com/mistralai/mistral-vibe/blob/4ae5c5955da8e761318916bdb1a7f46f0b50c7d0/harness/runtimes/python/python/mistralai_vibe_local_harness/vibe/adapters/mistral.py)
+also uses only `none` and `high`: its generic low setting maps to `none`,
+and medium/high/max map to `high`.
+Its [curated default model configuration](https://github.com/mistralai/mistral-vibe/blob/4ae5c5955da8e761318916bdb1a7f46f0b50c7d0/vibe/core/config/vibe_schema.py)
+offers off/high for Medium 3.5; the public source does not contain a Large 4-specific configuration.
+The unified adapter omits effort for off, while its
+[legacy backend](https://github.com/mistralai/mistral-vibe/blob/4ae5c5955da8e761318916bdb1a7f46f0b50c7d0/vibe/core/llm/backend/mistral.py)
+explicitly sends `none` when a curated model offers off.
 
 The [Mistral model card](https://docs.mistral.ai/models/mistral-large-4-0)
 documents the API ID, image support, and a 1M-token context window.
@@ -101,7 +112,7 @@ model("<api-model-id>", "<Display Name> (Mistral subscription)", contextWindow, 
   rather than requiring a hardcoded list of model IDs.
   Reasoning models without a map use legacy `prompt_mode` instead.
   The helper supplies a `none`/`high` map;
-  Large 4 overrides it to select high even when thinking is off.
+  Large 4 overrides it to offer only off/high and explicitly send `none` for off.
   Verify new mappings in `tests/mistral-stream.test.ts`.
 - **Input**: use `TEXT_AND_IMAGE_INPUT` for vision models and `TEXT_INPUT` otherwise.
 

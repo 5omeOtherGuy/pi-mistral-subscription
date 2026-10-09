@@ -46,8 +46,8 @@ export const MODELS = [
   // Use a conservative local 32k output cap until that limit is documented.
   {
     ...model("mistral-large-4", "Mistral Large 4 Preview (Mistral subscription)", 1_000_000, 32_768, true, TEXT_AND_IMAGE_INPUT),
-    // Requests always use high, including when Pi thinking is off.
-    thinkingLevelMap: { off: "high", minimal: null, low: null, medium: null, high: "high", xhigh: null, max: null },
+    // Mistral supports two effort values; off must explicitly request none.
+    thinkingLevelMap: { off: "none", minimal: null, low: null, medium: null, high: "high", xhigh: null, max: null },
   },
   model("mistral-large-latest", "Mistral Large 3 (Mistral subscription)", 262144, 262144, false, TEXT_AND_IMAGE_INPUT),
   model("ministral-14b-2512", "Ministral 3 14B (Mistral subscription)", 262144, 262144, false, TEXT_AND_IMAGE_INPUT),
