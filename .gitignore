@@ -1,3 +1,15 @@
 node_modules/
 *.tgz
 .DS_Store
+
+# Local environment files; only the example is committed.
+.env*
+!.env.example
+
+# Local agent scratch
+.amp/in/
+
+# Editors
+.vscode/
+.idea/
+*.swp
