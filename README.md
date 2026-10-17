@@ -45,6 +45,15 @@ Choose **Mistral subscription (Mistral AI Studio)**, complete the browser sign-i
 
 ## Models
 
+Pi refreshes this provider's model list from Mistral Vibe's authenticated
+`/v1/model-catalog?surface=vibe-code` endpoint. The returned chat models with
+tool support replace the local list for that refresh. The catalog supplies
+context length, vision support, and reasoning modes; it does not supply an
+output-token limit, so known models retain their local cap and new models use
+a conservative 32,768-token cap. If credentials are unavailable or the request
+fails, times out, or has no usable models, Pi keeps the local fallback below.
+Restart or refresh Pi's model catalog to see later server-side changes.
+
 | Model id | Name | Context | Reasoning | Images |
 | --- | --- | --- | --- | --- |
 | `mistral-medium-3.5` | Mistral Medium 3.5 (default in Mistral Vibe) | 262k | yes | yes |
@@ -102,7 +111,7 @@ Preview access still depends on your subscription.
 
 ## Adding models
 
-All models live in [`src/models.ts`](src/models.ts). To add one, append an entry to `MODELS`:
+The local fallback models live in [`src/models.ts`](src/models.ts). To add one, append an entry to `MODELS`:
 
 ```ts
 model("<api-model-id>", "<Display Name> (Mistral subscription)", contextWindow, maxTokens, reasoning, TEXT_AND_IMAGE_INPUT),
@@ -142,7 +151,8 @@ npm run check   # unit tests + typecheck
 Project layout:
 
 - `extensions/mistral-subscription/index.ts`: the Pi extension entry point. It registers the provider and the `/mistral-subscription-status` command.
-- `src/models.ts`: the model catalog (see [Adding models](#adding-models)).
+- `src/models.ts`: the local fallback model catalog (see [Adding models](#adding-models)).
+- `src/model-catalog.ts`: authenticated Vibe catalog refresh and validation.
 - `src/mistral-oauth.ts`: the `/login` flow. It mirrors Mistral Vibe's browser sign-in: it starts a sign-in process on `console.mistral.ai`, polls until you finish in the browser, then exchanges the result for an API key that Pi stores.
 - `tests/`: `node:test` suites run through `tsx`.
   The OAuth tests inject a fake `fetch`.

@@ -115,4 +115,5 @@ test("extension delegates to Pi's native streaming implementation", () => {
   assert.equal(registration.api, "mistral-conversations");
   assert.equal(registration.streamSimple, undefined);
   assert.ok(registration.models?.some((model) => model.id === "mistral-large-4"));
+  assert.equal(typeof registration.refreshModels, "function");
 });
