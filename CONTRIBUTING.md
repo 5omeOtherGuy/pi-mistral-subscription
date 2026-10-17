@@ -1,12 +1,12 @@
 # Contributing
 
-Contributions are welcome. This is a small, volunteer-maintained project, and I cannot promise ongoing maintenance, review times, or releases. Please feel free to fork it and continue development if I am unavailable. The project is licensed under MIT; see [LICENSE](LICENSE).
+Contributions are welcome. Issues are triaged and pull requests reviewed within 7 days. The project is licensed under MIT (see [LICENSE](LICENSE)); contributions are licensed under the same licence, with no CLA.
 
 ## Issues and pull requests
 
 For a substantial change, open an issue or comment on an existing one to discuss the approach. Small fixes can go straight to a pull request. Keep pull requests focused, explain what changed and why, and link any relevant issue. If a pull request addresses only part of an issue, reference it without a closing keyword.
 
-I will review contributions when I can, but an open issue or pull request is not a commitment to accept or maintain a change. Please do not rely on a particular response time.
+Small fixes are welcome directly; larger changes start with an issue, and `npm run check` must pass.
 
 ## Development
 
