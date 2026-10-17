@@ -1,0 +1,25 @@
+#!/bin/sh
+# Prepares an orb or fresh checkout. Safe to run repeatedly.
+set -eu
+cd "$(dirname "$0")/.."
+
+required=22.19.0
+current=$(node --version 2>/dev/null | sed 's/^v//') || current=
+if [ -z "$current" ] || [ "$(printf '%s\n%s\n' "$required" "$current" | sort -V | head -n1)" != "$required" ]; then
+  echo "setup: Node.js >= $required is required (found: ${current:-none})." >&2
+  exit 1
+fi
+
+npm ci --ignore-scripts --no-audit --no-fund --loglevel=error
+git config core.hooksPath .githooks
+
+# Report which credentials are present, never their values.
+for name in GH_TOKEN GITHUB_TOKEN MISTRAL_API_KEY; do
+  if [ -n "$(printenv "$name" || true)" ]; then state=present; else state=absent; fi
+  echo "setup: $name $state"
+done
+if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+  echo "setup: gh authenticated"
+else
+  echo "setup: gh not authenticated"
+fi
