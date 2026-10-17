@@ -32,7 +32,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "biome ci --colors=off .",
     "secrets": "secretlint \"**/*\"",
-    "pack:check": "npm pack --dry-run --silent > /dev/null",
+    "pack:check": "npm pack --dry-run --loglevel=error > /dev/null",
     "check": "npm run -s lint && npm run -s test && npm run -s typecheck && npm run -s secrets && npm run -s pack:check"
   },
   "devDependencies": {
