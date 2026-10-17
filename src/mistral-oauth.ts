@@ -1,4 +1,4 @@
-import { Buffer } from "node:buffer";
+import type { Buffer } from "node:buffer";
 import { createHash, randomBytes } from "node:crypto";
 
 import type { OAuthCredentials, OAuthLoginCallbacks } from "@earendil-works/pi-ai";
@@ -110,10 +110,20 @@ async function poll(fetch: FetchLike, pollUrl: string): Promise<PollResult> {
   const payload = await responseJson(response, message);
   if (!isRecord(payload)) throw new Error(`${message} response was malformed`);
   const status = payload.status;
-  if (status !== "pending" && status !== "completed" && status !== "expired" && status !== "denied" && status !== "error") {
+  if (
+    status !== "pending" &&
+    status !== "completed" &&
+    status !== "expired" &&
+    status !== "denied" &&
+    status !== "error"
+  ) {
     throw new Error("Mistral browser sign-in returned an unknown state");
   }
-  return { status, exchangeToken: optionalStringField(payload, "exchange_token"), message: optionalStringField(payload, "message") };
+  return {
+    status,
+    exchangeToken: optionalStringField(payload, "exchange_token"),
+    message: optionalStringField(payload, "message"),
+  };
 }
 
 async function waitForCompletion(
@@ -144,7 +154,12 @@ async function waitForCompletion(
   throw new Error("Mistral browser sign-in timed out");
 }
 
-async function exchange(fetch: FetchLike, processId: string, exchangeToken: string, codeVerifier: string): Promise<string> {
+async function exchange(
+  fetch: FetchLike,
+  processId: string,
+  exchangeToken: string,
+  codeVerifier: string,
+): Promise<string> {
   const message = "Failed to exchange Mistral browser sign-in for an API key";
   const response = await fetch(`${BROWSER_AUTH_API_BASE_URL}${SIGN_IN_PATH}/${processId}/exchange`, {
     method: "POST",

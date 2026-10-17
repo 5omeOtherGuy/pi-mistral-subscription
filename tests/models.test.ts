@@ -40,11 +40,14 @@ test("Large 4 preview supports images and both available reasoning modes", () =>
   assert.equal(model.reasoning, true);
   assert.equal(model.thinkingLevelMap?.high, "high");
   assert.equal(model.thinkingLevelMap?.off, "none", "off explicitly requests no reasoning trace");
-  assert.deepEqual(getSupportedThinkingLevels({
-    ...model,
-    api: MISTRAL_API_ID,
-    provider: MISTRAL_SUBSCRIPTION_PROVIDER_ID,
-    baseUrl: MISTRAL_BASE_URL,
-    compat: undefined,
-  }), ["off", "high"]);
+  assert.deepEqual(
+    getSupportedThinkingLevels({
+      ...model,
+      api: MISTRAL_API_ID,
+      provider: MISTRAL_SUBSCRIPTION_PROVIDER_ID,
+      baseUrl: MISTRAL_BASE_URL,
+      compat: undefined,
+    }),
+    ["off", "high"],
+  );
 });

@@ -42,7 +42,9 @@ describe("Mistral OAuth", () => {
       }
       if (url === "https://console.mistral.ai/api/vibe/sign-in/process-1") {
         pollCount += 1;
-        return jsonResponse(pollCount === 1 ? { status: "pending" } : { status: "completed", exchange_token: "exchange-1" });
+        return jsonResponse(
+          pollCount === 1 ? { status: "pending" } : { status: "completed", exchange_token: "exchange-1" },
+        );
       }
       if (url.endsWith("/vibe/sign-in/process-1/exchange")) {
         return jsonResponse({ api_key: "mistral-api-key" });
@@ -70,12 +72,13 @@ describe("Mistral OAuth", () => {
   });
 
   it("rejects sign-in URLs outside Mistral AI Studio", async () => {
-    const fetch: FetchLike = async () => jsonResponse({
-      process_id: "process-1",
-      sign_in_url: "https://evil.example/sign-in/process-1",
-      poll_url: "https://console.mistral.ai/api/vibe/sign-in/process-1",
-      expires_at: "2035-01-01T00:00:00Z",
-    });
+    const fetch: FetchLike = async () =>
+      jsonResponse({
+        process_id: "process-1",
+        sign_in_url: "https://evil.example/sign-in/process-1",
+        poll_url: "https://console.mistral.ai/api/vibe/sign-in/process-1",
+        expires_at: "2035-01-01T00:00:00Z",
+      });
 
     const oauth = createMistralOAuth({ fetch });
     await assert.rejects(() => oauth.login(callbacks()), /unexpected URL/);

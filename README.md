@@ -145,7 +145,7 @@ pi -e . --provider mistral-subscription --model <api-model-id>
 
 ```sh
 npm ci --ignore-scripts
-npm run check   # unit tests + typecheck
+npm run check   # format and lint, tests, typecheck, secret scan, pack check
 ```
 
 Project layout:

@@ -28,14 +28,20 @@
     "@earendil-works/pi-coding-agent": ">=0.99.0"
   },
   "scripts": {
-    "test": "node --test --import tsx \"tests/**/*.test.ts\"",
+    "test": "node --test --test-reporter=dot --import tsx \"tests/**/*.test.ts\"",
     "typecheck": "tsc --noEmit",
-    "check": "npm test && npm run typecheck"
+    "lint": "biome ci --colors=off .",
+    "secrets": "secretlint \"**/*\"",
+    "pack:check": "npm pack --dry-run --loglevel=error > /dev/null",
+    "check": "npm run -s lint && npm run -s test && npm run -s typecheck && npm run -s secrets && npm run -s pack:check"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.5.15",
     "@earendil-works/pi-ai": "1.3.0",
     "@earendil-works/pi-coding-agent": "1.3.0",
+    "@secretlint/secretlint-rule-preset-recommend": "^13.0.7",
     "@types/node": "~22.19.0",
+    "secretlint": "^13.0.7",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2"
   }

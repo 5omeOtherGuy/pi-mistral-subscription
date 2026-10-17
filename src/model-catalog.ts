@@ -1,8 +1,7 @@
-import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 import type { RefreshModelsContext } from "@earendil-works/pi-ai";
-
-import { isRecord } from "./type-guards.ts";
+import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 import { MISTRAL_API_ID, MODELS } from "./models.ts";
+import { isRecord } from "./type-guards.ts";
 
 // Mistral Vibe's model-catalog client uses this endpoint and surface, not /v1/models.
 export const MODEL_CATALOG_URL = "https://api.mistral.ai/v1/model-catalog?surface=vibe-code";
@@ -18,16 +17,25 @@ function catalogModels(payload: unknown): CatalogModel[] {
   const models: CatalogModel[] = [];
 
   for (const raw of payload.models) {
-    if (!isRecord(raw) || typeof raw.id !== "string" || !raw.id.trim() ||
-      typeof raw.label !== "string" || !raw.label.trim() || seen.has(raw.id)) continue;
+    if (
+      !isRecord(raw) ||
+      typeof raw.id !== "string" ||
+      !raw.id.trim() ||
+      typeof raw.label !== "string" ||
+      !raw.label.trim() ||
+      seen.has(raw.id)
+    )
+      continue;
     const capabilities = isRecord(raw.capabilities) ? raw.capabilities : {};
     // Pi needs chat completions and tool calls for an agent model. Missing flags
     // are not evidence that a model supports either capability.
     if (capabilities.completion_chat !== true || capabilities.function_calling !== true) continue;
 
     const known = fallback.get(raw.id);
-    const contextWindow = Number.isSafeInteger(raw.max_context_length) && (raw.max_context_length as number) > 0
-      ? raw.max_context_length as number : known?.contextWindow;
+    const contextWindow =
+      Number.isSafeInteger(raw.max_context_length) && (raw.max_context_length as number) > 0
+        ? (raw.max_context_length as number)
+        : known?.contextWindow;
     if (!contextWindow) continue;
 
     const parameters = isRecord(raw.parameters) ? raw.parameters : {};
@@ -35,15 +43,17 @@ function catalogModels(payload: unknown): CatalogModel[] {
     const hasHigh = efforts.includes("high");
     const hasNone = efforts.includes("none");
     const reasoning = hasHigh;
-    const thinkingLevelMap = hasHigh ? {
-      off: hasNone ? "none" : null,
-      minimal: null,
-      low: null,
-      medium: null,
-      high: "high",
-      xhigh: null,
-      max: null,
-    } as const : undefined;
+    const thinkingLevelMap = hasHigh
+      ? ({
+          off: hasNone ? "none" : null,
+          minimal: null,
+          low: null,
+          medium: null,
+          high: "high",
+          xhigh: null,
+          max: null,
+        } as const)
+      : undefined;
     models.push({
       id: raw.id,
       api: MISTRAL_API_ID,

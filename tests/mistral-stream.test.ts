@@ -2,24 +2,23 @@ import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { test } from "node:test";
 
-import { normalizeContext, type Model, type SimpleStreamOptions } from "@earendil-works/pi-ai";
+import { type Model, normalizeContext, type SimpleStreamOptions } from "@earendil-works/pi-ai";
 import { streamSimple } from "@earendil-works/pi-ai/api/mistral-conversations";
 import type { ExtensionAPI, ProviderConfig } from "@earendil-works/pi-coding-agent";
 
 import mistralSubscriptionExtension from "../extensions/mistral-subscription/index.ts";
 import { MISTRAL_SUBSCRIPTION_PROVIDER_ID, MODELS } from "../src/models.ts";
 
-async function requestPayload(
-  id: string,
-  options?: SimpleStreamOptions,
-): Promise<Record<string, unknown>> {
+async function requestPayload(id: string, options?: SimpleStreamOptions): Promise<Record<string, unknown>> {
   let payload: Record<string, unknown> | undefined;
   const server = createServer(async (req, res) => {
     let body = "";
     for await (const chunk of req) body += chunk;
     payload = JSON.parse(body);
     res.writeHead(200, { "Content-Type": "text/event-stream" });
-    res.end('data: {"id":"test","object":"chat.completion.chunk","created":0,"model":"test","choices":[{"index":0,"delta":{"content":"ok"},"finish_reason":"stop"}]}\n\ndata: [DONE]\n\n');
+    res.end(
+      'data: {"id":"test","object":"chat.completion.chunk","created":0,"model":"test","choices":[{"index":0,"delta":{"content":"ok"},"finish_reason":"stop"}]}\n\ndata: [DONE]\n\n',
+    );
   });
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   try {
@@ -42,17 +41,21 @@ async function requestPayload(
       messages: [{ role: "user", content: "Hello", timestamp: 0 }],
     });
     const result = await streamSimple(model, context, {
-      apiKey: "placeholder-test-key", ...options,
+      apiKey: "placeholder-test-key",
+      ...options,
     }).result();
     assert.equal(result.stopReason, "stop", result.errorMessage);
     assert.ok(payload, "request reached the local test server");
     return payload;
   } finally {
-    await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+    await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
   }
 }
 
-for (const [reasoning, effort] of [[undefined, "none"], ["high", "high"]] as const) {
+for (const [reasoning, effort] of [
+  [undefined, "none"],
+  ["high", "high"],
+] as const) {
   test(`Large 4 sends ${effort} reasoning with thinking ${reasoning ?? "off"}`, async () => {
     const payload = await requestPayload("mistral-large-4", { reasoning });
     assert.equal(payload.model, "mistral-large-4");
@@ -86,7 +89,11 @@ test("Large 4 preserves request options and async payload hooks", async () => {
 test("Medium and Small send explicit effort for off and preserve other mappings", async () => {
   for (const id of ["mistral-medium-3.5", "mistral-small-latest"]) {
     for (const [reasoning, effort] of [
-      [undefined, "none"], ["low", "none"], ["medium", "high"], ["high", "high"], ["xhigh", "high"],
+      [undefined, "none"],
+      ["low", "none"],
+      ["medium", "high"],
+      ["high", "high"],
+      ["xhigh", "high"],
     ] as const) {
       const payload = await requestPayload(id, { reasoning });
       assert.equal(payload.model, id);
