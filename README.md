@@ -1,12 +1,19 @@
 # pi-mistral-subscription
 
-A native [Pi](https://github.com/earendil-works/pi) package that adds a Mistral subscription provider to Pi Agent.
+Pi package: Mistral subscription provider with browser sign-in through Mistral AI Studio.
 
+Status: released. People install it from `main`; changes land only through reviewed pull requests with a green gate.
+
+[![gate](https://github.com/5omeOtherGuy/pi-mistral-subscription/actions/workflows/gate.yml/badge.svg?branch=main)](https://github.com/5omeOtherGuy/pi-mistral-subscription/actions/workflows/gate.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+A native [Pi](https://github.com/earendil-works/pi) package that adds a Mistral subscription provider to Pi Agent.
 It registers `mistral-subscription`, adds `/login` browser sign-in through Mistral AI Studio, and lets Pi use the Mistral models exposed by Mistral Vibe with your Mistral Pro or higher subscription.
+It uses Pi's native `mistral-conversations` streaming path, not a proxy server, and contains no credentials, tokens or API keys.
 
 ## Install
 
-Requires Pi 0.99.0 or newer.
+Requires Pi 0.99.0 or newer and Node.js 22.19.0 or newer; see [Compatibility](#compatibility).
 
 Install directly from this public GitHub repo:
 
@@ -27,7 +34,7 @@ git clone https://github.com/5omeOtherGuy/pi-mistral-subscription
 pi install ./pi-mistral-subscription
 ```
 
-## Login and use
+## Usage
 
 Start Pi with the provider and a Mistral model:
 
@@ -43,7 +50,9 @@ Then run:
 
 Choose **Mistral subscription (Mistral AI Studio)**, complete the browser sign-in, and return to Pi. Pi stores the resulting credential in its normal auth storage.
 
-## Models
+## Configuration
+
+### Models
 
 Pi refreshes this provider's model list from Mistral Vibe's authenticated
 `/v1/model-catalog?surface=vibe-code` endpoint. The returned chat models with
@@ -71,7 +80,7 @@ For Medium 3.5, Small 4, and Large 4, `--thinking off` explicitly sends
 `reasoning_effort: "none"` rather than relying on the server default.
 Medium and Small retain their existing mappings for other thinking levels.
 
-### Mistral Large 4 preview
+#### Mistral Large 4 preview
 
 ```sh
 pi --provider mistral-subscription --model mistral-large-4 --thinking high
@@ -109,7 +118,39 @@ See [Mistral's reasoning documentation](https://docs.mistral.ai/studio/conversat
 for the supported effort values.
 Preview access still depends on your subscription.
 
-## Adding models
+## Compatibility
+
+- **Pi**: 0.99.0 or newer (`peerDependencies`). CI tests against Pi 1.3.0, last verified 2026-10-17.
+- **Node.js**: 22.19.0 or newer (`engines`). CI runs Node 22 on Ubuntu 24.04.
+- **Mistral**: a Pro or higher subscription with access through Mistral AI Studio. Which models you can call depends on your plan.
+
+## Development
+
+```sh
+npm ci --ignore-scripts
+npm run check   # format and lint, tests, typecheck, secret scan, pack check
+```
+
+Run one test file:
+
+```sh
+node --test --import tsx tests/models.test.ts
+```
+
+`.agents/setup` installs dependencies and enables the pre-push hook (`git config core.hooksPath .githooks`), which runs the gate before every push.
+
+Project layout:
+
+- `extensions/mistral-subscription/index.ts`: the Pi extension entry point. It registers the provider and the `/mistral-subscription-status` command.
+- `src/models.ts`: the local fallback model catalog (see [Adding models](#adding-models)).
+- `src/model-catalog.ts`: authenticated Vibe catalog refresh and validation.
+- `src/mistral-oauth.ts`: the `/login` flow. It mirrors Mistral Vibe's browser sign-in: it starts a sign-in process on `console.mistral.ai`, polls until you finish in the browser, then exchanges the result for an API key that Pi stores.
+- `tests/`: `node:test` suites run through `tsx`.
+  The OAuth tests inject a fake `fetch`.
+  Streaming tests use a loopback HTTP server to verify serialized requests;
+  no tests contact Mistral or use real credentials.
+
+### Adding models
 
 The local fallback models live in [`src/models.ts`](src/models.ts). To add one, append an entry to `MODELS`:
 
@@ -129,35 +170,11 @@ model("<api-model-id>", "<Display Name> (Mistral subscription)", contextWindow, 
   Verify new mappings in `tests/mistral-stream.test.ts`.
 - **Input**: use `TEXT_AND_IMAGE_INPUT` for vision models and `TEXT_INPUT` otherwise.
 
-Then add the model to the table above and run `npm run check`. To try it for real, sign in with `/login` and run:
+Then add the model to the [model table](#models) and run `npm run check`. To try it for real, sign in with `/login` and run:
 
 ```sh
 pi -e . --provider mistral-subscription --model <api-model-id>
 ```
-
-## Notes
-
-- Requires a Mistral Pro or higher subscription with access through Mistral AI Studio.
-- The provider uses Pi's native `mistral-conversations` streaming path, not a proxy server.
-- This package contains no real credentials, tokens, or API keys.
-
-## Development
-
-```sh
-npm ci --ignore-scripts
-npm run check   # format and lint, tests, typecheck, secret scan, pack check
-```
-
-Project layout:
-
-- `extensions/mistral-subscription/index.ts`: the Pi extension entry point. It registers the provider and the `/mistral-subscription-status` command.
-- `src/models.ts`: the local fallback model catalog (see [Adding models](#adding-models)).
-- `src/model-catalog.ts`: authenticated Vibe catalog refresh and validation.
-- `src/mistral-oauth.ts`: the `/login` flow. It mirrors Mistral Vibe's browser sign-in: it starts a sign-in process on `console.mistral.ai`, polls until you finish in the browser, then exchanges the result for an API key that Pi stores.
-- `tests/`: `node:test` suites run through `tsx`.
-  The OAuth tests inject a fake `fetch`.
-  Streaming tests use a loopback HTTP server to verify serialized requests;
-  no tests contact Mistral or use real credentials.
 
 Useful references when Mistral changes things:
 
@@ -165,4 +182,14 @@ Useful references when Mistral changes things:
 - [Mistral changelog](https://docs.mistral.ai/resources/changelogs): new model ids and deprecations.
 - pi-ai's `mistral-conversations` provider: how requests, reasoning and streaming are sent.
 
-Please never commit real credentials. Use placeholder values in tests.
+See [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
+
+## Contributing, support and security
+
+- Bugs and feature requests: [open an issue](https://github.com/5omeOtherGuy/pi-mistral-subscription/issues/new/choose). Issues are triaged and pull requests reviewed within 7 days.
+- Contributions: [CONTRIBUTING.md](CONTRIBUTING.md).
+- Vulnerabilities: report privately as described in [SECURITY.md](SECURITY.md).
+
+## Licence
+
+[MIT](LICENSE)
