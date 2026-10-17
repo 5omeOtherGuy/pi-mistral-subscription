@@ -17,7 +17,7 @@ npm ci --ignore-scripts
 npm run check
 ```
 
-`npm run check` runs the tests and TypeScript typecheck. Include tests for behavior changes. The existing request tests use a local loopback server, so they do not need a Mistral account.
+`npm run check` is the gate CI runs: Biome format and lint check, the tests, the TypeScript typecheck, a secretlint scan and `npm pack --dry-run`. `npx biome check --write .` fixes formatting. Include tests for behavior changes. The existing request tests use a local loopback server, so they do not need a Mistral account.
 
 ## Model and catalog changes
 
