@@ -1,0 +1,43 @@
+# AGENTS.md
+
+## Profile
+- Purpose: Pi package that adds a Mistral subscription provider with browser sign-in through Mistral AI Studio.
+- Stage: released (repository standard 2026-10-17)
+- Gate: `npm run check` (CI job `gate`)
+- Landing: PR, squash-merged on a green gate; agents land: yes
+- Release: none (users install from `main`; versions and tags await the owner's decision); agents release: no
+- Outside issues and PRs: agents triage; outside PRs merge: owner approves
+
+Deliberate deviations from the standard:
+- No release workflow, version tags or `CHANGELOG.md` yet: whether behaviour changes get versions and tags, or `main` stays the only install channel, is an open owner decision. npm publication is deferred (issue #1).
+- `CODE_OF_CONDUCT.md` is missing until the owner names a private enforcement contact.
+- `CONTRIBUTING.md` keeps repository-specific rules: install with `npm ci --ignore-scripts`; cite sources for model IDs and limits and describe unexpected-response handling; never commit keys or captured requests; installation is from GitHub, npm publication is a separate maintainer decision.
+
+## Map
+- `extensions/mistral-subscription/index.ts`: Pi entry point; registers the `mistral-subscription` provider and the `/mistral-subscription-status` command.
+- `src/models.ts`: local fallback model catalog and the thinking-level to `reasoning_effort` maps.
+- `src/model-catalog.ts`: authenticated refresh from Mistral Vibe's `/v1/model-catalog?surface=vibe-code`, with validation and fallback.
+- `src/mistral-oauth.ts`: `/login` browser sign-in through Mistral AI Studio, ending in an API key Pi stores.
+- `tests/`: `node:test` suites run through `tsx`.
+- `.github/workflows/gate.yml`: CI job `gate`; `.githooks/pre-push`: gate before push, refuses pushes to `main`; `.agents/setup`: orb setup.
+
+## Landing
+1. Branch `<type>/<slug>` (`<type>/<issue>-<slug>` for an issue) from `origin/main`, one concern per PR.
+2. Run `npm run check` (the pre-push hook runs it too).
+3. Open a PR with a Conventional Commits title; the body says what changed, why, how it was verified, and `Fixes #n` where it applies.
+4. CI, public-interface (provider ID, model IDs, login flow, package manifest) and security-sensitive changes get an independent review before merge; record the verdict in the PR.
+5. When the latest `gate` run on the head commit concluded `success`: `gh pr merge <number> --squash --delete-branch --match-head-commit <sha>`. Report the merge commit.
+
+## Rules
+- Use Pi's native `mistral-conversations` API path; no proxy server or custom streaming adapter.
+- Model IDs, limits and capabilities come from Mistral's documentation or the Mistral Vibe source; cite them in the PR and update the README model table and tests together.
+- The catalog refresh must fall back to the local models on missing credentials, errors, timeouts or unusable responses.
+- Tests are hermetic: OAuth tests inject a fake `fetch`, streaming tests use a loopback server. Build credential-shaped strings from parts.
+- Never commit API keys, OAuth credentials, Pi auth files or captured requests. Live tests against Mistral spend the owner's subscription quota: never run them unless the owner asks.
+- Keep `peerDependencies` at the oldest Pi version that works (`>=0.99.0`) and the Pi dev dependencies on the newest Pi release, so CI tests the newest host. `@types/node` follows the `engines.node` line.
+- Commits use the GitHub noreply address `268151429+5omeOtherGuy@users.noreply.github.com` and carry no personal email trailers.
+
+## Focused test
+```sh
+node --test --import tsx tests/models.test.ts
+```
