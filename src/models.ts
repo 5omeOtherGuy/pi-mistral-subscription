@@ -46,7 +46,14 @@ export const MODELS = [
   // The model card publishes a 1M context, not a separate output limit.
   // Use a conservative local 32k output cap until that limit is documented.
   {
-    ...model("mistral-large-4", "Mistral Large 4 Preview (Mistral subscription)", 1_000_000, 32_768, true, TEXT_AND_IMAGE_INPUT),
+    ...model(
+      "mistral-large-4",
+      "Mistral Large 4 Preview (Mistral subscription)",
+      1_000_000,
+      32_768,
+      true,
+      TEXT_AND_IMAGE_INPUT,
+    ),
     // Mistral supports two effort values; off must explicitly request none.
     thinkingLevelMap: { off: "none", minimal: null, low: null, medium: null, high: "high", xhigh: null, max: null },
   },

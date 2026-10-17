@@ -1,8 +1,7 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-
-import { MISTRAL_BASE_URL, MISTRAL_SUBSCRIPTION_PROVIDER_ID, MODELS } from "../../src/models.ts";
 import { mistralOAuth } from "../../src/mistral-oauth.ts";
 import { refreshMistralModels } from "../../src/model-catalog.ts";
+import { MISTRAL_BASE_URL, MISTRAL_SUBSCRIPTION_PROVIDER_ID, MODELS } from "../../src/models.ts";
 
 export default function mistralSubscriptionExtension(pi: ExtensionAPI) {
   pi.registerProvider(MISTRAL_SUBSCRIPTION_PROVIDER_ID, {
