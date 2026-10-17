@@ -37,7 +37,7 @@ function model(
   };
 }
 
-// To add a model, append a `model(...)` entry below. See "Adding models" in README.md.
+// Local fallback when the subscription catalog cannot be fetched.
 // `id` is sent verbatim to the Mistral API. Reasoning models use thinkingLevelMap
 // to select reasoning_effort in Pi 0.99+ (see tests/mistral-stream.test.ts).
 export const MODELS = [
