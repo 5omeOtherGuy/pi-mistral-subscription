@@ -10,6 +10,11 @@ updates:
     commit-message:
       prefix: "build(deps)"
       prefix-development: "build(deps-dev)"
+    ignore:
+      # @types/node follows the oldest supported Node line (engines.node);
+      # raise both together when that floor moves.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     groups:
       # Groups are matched in order; majors stay out of this group.
       npm-minor-patch:
