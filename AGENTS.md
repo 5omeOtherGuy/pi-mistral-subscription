@@ -2,11 +2,12 @@
 
 ## Profile
 - Purpose: Pi package that adds a Mistral subscription provider with browser sign-in through Mistral AI Studio.
-- Stage: released (repository standard 2026-10-17)
+- Stage: released (repository standard 2026-10-18)
 - Gate: `npm run check` (CI job `gate`)
 - Landing: PR, squash-merged on a green gate; agents land: yes
 - Release: none (users install from `main`; versions and tags await the owner's decision); agents release: no
 - Outside issues and PRs: agents triage; outside PRs merge: owner approves
+- Sensitive paths: `src/mistral-oauth.ts`, `src/model-catalog.ts`, `src/models.ts`, `extensions/mistral-subscription/index.ts`, `package.json`, `.npmrc`, `.agents/`, `.githooks/`, `.github/workflows/`, `.github/dependabot.yml`, `.github/CODEOWNERS`, `.secretlintrc.json`, `AGENTS.md`
 
 Deliberate deviations from the standard:
 - No release workflow, version tags or `CHANGELOG.md` yet: whether behaviour changes get versions and tags, or `main` stays the only install channel, is an open owner decision. npm publication is deferred (issue #1).
@@ -25,7 +26,7 @@ Deliberate deviations from the standard:
 1. Branch `<type>/<slug>` (`<type>/<issue>-<slug>` for an issue) from `origin/main`, one concern per PR.
 2. Run `npm run check` (the pre-push hook runs it too).
 3. Open a PR with a Conventional Commits title; the body says what changed, why, how it was verified, and `Fixes #n` where it applies.
-4. CI, public-interface (provider ID, model IDs, login flow, package manifest) and security-sensitive changes get an independent review before merge; record the verdict in the PR.
+4. Changes to a sensitive path, and any other CI, public-interface (provider ID, model IDs, login flow, package manifest) or security-sensitive change, get an independent review before merge; record the verdict on the PR against the reviewed head commit. A later push needs a new review.
 5. When the latest `gate` run on the head commit concluded `success`: `gh pr merge <number> --squash --delete-branch --match-head-commit <sha>`. Report the merge commit.
 
 ## Rules
