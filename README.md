@@ -187,7 +187,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
 ## Contributing, support and security
 
 - Bugs and feature requests: [open an issue](https://github.com/5omeOtherGuy/pi-mistral-subscription/issues/new/choose). Issues are triaged and pull requests reviewed within 7 days.
-- Contributions: [CONTRIBUTING.md](CONTRIBUTING.md).
+- Contributions: [CONTRIBUTING.md](CONTRIBUTING.md). Everyone taking part follows the [Code of Conduct](CODE_OF_CONDUCT.md).
 - Vulnerabilities: report privately as described in [SECURITY.md](SECURITY.md).
 
 ## Licence
