@@ -11,7 +11,6 @@
 
 Deliberate deviations from the standard:
 - No release workflow, version tags or `CHANGELOG.md` yet: whether behaviour changes get versions and tags, or `main` stays the only install channel, is an open owner decision. npm publication is deferred (issue #1).
-- `CODE_OF_CONDUCT.md` is missing until the owner names a private enforcement contact.
 - `CONTRIBUTING.md` keeps repository-specific rules: install with `npm ci --ignore-scripts`; cite sources for model IDs and limits and describe unexpected-response handling; never commit keys or captured requests; installation is from GitHub, npm publication is a separate maintainer decision.
 
 ## Map
