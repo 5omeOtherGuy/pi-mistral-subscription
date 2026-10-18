@@ -25,7 +25,7 @@ Deliberate deviations from the standard:
 ## Landing
 1. Branch `<type>/<slug>` (`<type>/<issue>-<slug>` for an issue) from `origin/main`, one concern per PR.
 2. Run `npm run check` (the pre-push hook runs it too).
-3. Open a PR with a Conventional Commits title; the body says what changed, why, how it was verified, and `Fixes #n` where it applies.
+3. Open a PR with a Conventional Commits title; the body follows `.github/pull_request_template.md`: intent, changed behavior, constraints touched, evidence, whether a sensitive path changed, and `Fixes #n` where it applies.
 4. Changes to a sensitive path get an independent review before merge, and so do, listed or not, changes to public interfaces (provider ID, model IDs, login flow, package manifest), security-sensitive code, auth or credential handling, install or setup, CI or release configuration, agent policy files, and docs that change rules or executable instructions. Record the verdict on the PR against the reviewed head commit; a later push needs a new review.
 5. When the latest `gate` run on the head commit concluded `success`: `gh pr merge <number> --squash --delete-branch --match-head-commit <sha>`. Report the merge commit.
 
