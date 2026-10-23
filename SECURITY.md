@@ -11,7 +11,7 @@ shipped, and then the advisory is published with credit to the reporter, unless 
 
 ## Supported versions
 
-The package is installed from the `main` branch, so fixes land on `main`. Once versioned releases
-exist, the latest minor version is supported.
+Supported: `main` and the latest release tag. Fixes land on `main` and ship in the next release
+tag. If you pinned a tag, reinstall with the newer tag to get a fix.
 
 Never include real API keys, OAuth credentials or Pi auth files in a report; describe them or use placeholders.

@@ -6,7 +6,7 @@ body:
     id: version
     attributes:
       label: Version
-      description: When you installed or last updated the package (or the commit, if you know it) and your Pi version (`pi --version`).
+      description: When you installed or last updated the package (or the commit, if you know it), the release tag if you pinned one (e.g. `v0.1.0`), and your Pi version (`pi --version`).
     validations:
       required: true
   - type: input

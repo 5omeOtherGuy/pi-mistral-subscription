@@ -5,12 +5,12 @@
 - Stage: released (repository standard 2026-10-18)
 - Gate: `npm run check` (CI job `gate`)
 - Landing: PR, squash-merged on a green gate; agents land: yes
-- Release: none (users install from `main`; versions and tags await the owner's decision); agents release: no
+- Release: `v0.x.y` Git tags with a GitHub Release, cut by hand from `main` after a behaviour change (models, login, provider), not after docs-only merges; `package.json` `version` and the README pinned-install example match the tag; the Release notes are the changelog; `main` stays the default install; agents release: no
 - Outside issues and PRs: agents triage; outside PRs merge: owner approves
 - Sensitive paths: `src/mistral-oauth.ts`, `src/model-catalog.ts`, `src/models.ts`, `extensions/mistral-subscription/index.ts`, `package.json`, `.npmrc`, `.agents/`, `.githooks/`, `.github/workflows/`, `.github/dependabot.yml`, `.github/CODEOWNERS`, `.secretlintrc.json`, `.gitignore`, `AGENTS.md`
 
 Deliberate deviations from the standard:
-- No release workflow, version tags or `CHANGELOG.md` yet: whether behaviour changes get versions and tags, or `main` stays the only install channel, is an open owner decision. npm publication is deferred (issue #1).
+- No release workflow or `CHANGELOG.md`: releases are tagged by hand and GitHub Release notes serve as the changelog (owner decision 2026-10-23). npm publication is deferred (issue #1).
 - `CONTRIBUTING.md` keeps repository-specific rules: install with `npm ci --ignore-scripts`; cite sources for model IDs and limits and describe unexpected-response handling; never commit keys or captured requests; installation is from GitHub, npm publication is a separate maintainer decision.
 
 ## Map

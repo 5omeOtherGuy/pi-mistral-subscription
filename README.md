@@ -2,7 +2,7 @@
 
 Pi package: Mistral subscription provider with browser sign-in through Mistral AI Studio.
 
-Status: released. People install it from `main`; changes land only through reviewed pull requests with a green gate.
+Status: released. People install it from `main` or a pinned [release tag](https://github.com/5omeOtherGuy/pi-mistral-subscription/releases); changes land only through reviewed pull requests with a green gate.
 
 [![gate](https://github.com/5omeOtherGuy/pi-mistral-subscription/actions/workflows/gate.yml/badge.svg?branch=main)](https://github.com/5omeOtherGuy/pi-mistral-subscription/actions/workflows/gate.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -20,6 +20,16 @@ Install directly from this public GitHub repo:
 ```sh
 pi install https://github.com/5omeOtherGuy/pi-mistral-subscription
 ```
+
+This follows `main`, and `pi update --extensions` moves it to the latest merged change.
+To stay on a released version instead, pin a tag from the [releases page](https://github.com/5omeOtherGuy/pi-mistral-subscription/releases):
+
+```sh
+pi install git:github.com/5omeOtherGuy/pi-mistral-subscription@v0.1.0
+```
+
+`pi update` leaves a pinned install on its tag; run `pi install` again with a newer tag to upgrade.
+Each release's notes list what changed.
 
 Or try it for one Pi run without adding it to settings:
 
