@@ -5,7 +5,7 @@
 - Stage: released (repository standard 2026-10-18)
 - Gate: `npm run check` (CI job `gate`)
 - Landing: PR, squash-merged on a green gate; agents land: yes
-- Release: `v0.x.y` Git tags with a GitHub Release, cut by hand from `main` after a behaviour change (models, login, provider), not after docs-only merges; `package.json` `version` matches the tag; the Release notes are the changelog; `main` stays the default install; agents release: no
+- Release: `v0.x.y` Git tags with a GitHub Release, cut by hand from `main` after a behaviour change (models, login, provider), not after docs-only merges; `package.json` `version` and the README pinned-install example match the tag; the Release notes are the changelog; `main` stays the default install; agents release: no
 - Outside issues and PRs: agents triage; outside PRs merge: owner approves
 - Sensitive paths: `src/mistral-oauth.ts`, `src/model-catalog.ts`, `src/models.ts`, `extensions/mistral-subscription/index.ts`, `package.json`, `.npmrc`, `.agents/`, `.githooks/`, `.github/workflows/`, `.github/dependabot.yml`, `.github/CODEOWNERS`, `.secretlintrc.json`, `.gitignore`, `AGENTS.md`
 

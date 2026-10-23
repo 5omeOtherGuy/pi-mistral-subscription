@@ -28,7 +28,7 @@ To stay on a released version instead, pin a tag from the [releases page](https:
 pi install git:github.com/5omeOtherGuy/pi-mistral-subscription@v0.1.0
 ```
 
-Pi does not move a pinned tag on update; run `pi install` again with a newer tag to upgrade.
+`pi update` leaves a pinned install on its tag; run `pi install` again with a newer tag to upgrade.
 Each release's notes list what changed.
 
 Or try it for one Pi run without adding it to settings:
