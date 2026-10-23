@@ -5,7 +5,7 @@
 - Stage: released (repository standard 2026-10-18)
 - Gate: `npm run check` (CI job `gate`)
 - Landing: PR, squash-merged on a green gate; agents land: yes
-- Release: `v0.x.y` Git tags with a GitHub Release, cut by hand from `main` after a behaviour change (models, login, provider), not after docs-only merges; `package.json` `version` and the README pinned-install example match the tag; the Release notes are the changelog; `main` stays the default install; agents release: no
+- Release: `v0.x.y` Git tags with a GitHub Release, cut by hand from `main` after a behaviour change (see [Releasing](#releasing)); `package.json` `version` and the README pinned-install example match the tag; the Release notes are the changelog; `main` stays the default install; agents release: yes (owner 2026-10-23)
 - Outside issues and PRs: agents triage; outside PRs merge: owner approves
 - Sensitive paths: `src/mistral-oauth.ts`, `src/model-catalog.ts`, `src/models.ts`, `extensions/mistral-subscription/index.ts`, `package.json`, `.npmrc`, `.agents/`, `.githooks/`, `.github/workflows/`, `.github/dependabot.yml`, `.github/CODEOWNERS`, `.secretlintrc.json`, `.gitignore`, `AGENTS.md`
 
@@ -27,6 +27,12 @@ Deliberate deviations from the standard:
 3. Open a PR with a Conventional Commits title; the body follows `.github/pull_request_template.md`: intent, changed behavior, constraints touched, evidence, whether a sensitive path changed, and `Fixes #n` where it applies.
 4. Changes to a sensitive path get an independent review before merge, and so do, listed or not, changes to public interfaces (provider ID, model IDs, login flow, package manifest), security-sensitive code, auth or credential handling, install or setup, CI or release configuration, agent policy files, and docs that change rules or executable instructions. Record the verdict on the PR against the reviewed head commit; a later push needs a new review.
 5. When the latest `gate` run on the head commit concluded `success`: `gh pr merge <number> --squash --delete-branch --match-head-commit <sha>`. Report the merge commit.
+
+## Releasing
+Cut a release when `git log $(git describe --tags --abbrev=0 origin/main)..origin/main` contains a behaviour change: models, login, provider, install, runtime or `peerDependencies` changes, security fixes. Docs-, CI-, test- and devDependency-only commits wait for the next one. The agent that merged the change releases; a change merged by the owner (outside PRs, security advisories) is released by the next agent working in the repository. One release covers every change since the previous tag.
+1. Pick the version (the project is `0.x`; `1.0.0` is the owner's decision): patch for fixes and additions that keep existing setups working, such as a new model; minor for new commands or capabilities and anything that removes or renames a model or provider ID, changes the login flow or raises the `peerDependencies` floor.
+2. Land a `chore(release): v0.x.y` PR through the steps above that changes only the version: `npm version --no-git-tag-version 0.x.y` (updates `package.json` and both `package-lock.json` fields) and the README pinned-install example.
+3. Right after the release PR merges, on its merge commit: `gh release create v0.x.y --target <full sha from gh pr view <n> --json mergeCommit -q .mergeCommit.oid> --title v0.x.y --notes-file <file>`. Until then the README points at a missing tag, so do this before anything else lands. Notes list the user-visible changes since the previous tag (`git log <previous tag>..<merge sha>`) with PR numbers and credit outside contributors. Report the release URL.
 
 ## Rules
 - Use Pi's native `mistral-conversations` API path; no proxy server or custom streaming adapter.
