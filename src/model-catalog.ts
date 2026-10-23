@@ -68,7 +68,14 @@ function catalogModels(payload: unknown): CatalogModel[] {
     });
     seen.add(raw.id);
   }
-  return models;
+  // Merge, do not replace: the vibe-code surface rotates and can drop models
+  // that subscription tokens can still call (e.g. mistral-large-4). Keep the
+  // local fallback entries whose ids the catalog no longer lists.
+  const merged = [...models];
+  for (const local of fallback.values()) {
+    if (!seen.has(local.id)) merged.push(local);
+  }
+  return merged;
 }
 
 export function createModelCatalog(fetch: FetchLike = globalThis.fetch.bind(globalThis)) {

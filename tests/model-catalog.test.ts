@@ -51,7 +51,9 @@ test("fetches Vibe's subscription catalog with the active credential and maps ca
   });
   const models = await refresh(context());
   assert.equal(calls, 1);
-  assert.equal(models.length, 1);
+  // Catalog models come first, followed by local fallback models the catalog
+  // no longer lists (merged, not replaced).
+  assert.equal(models.length, 1 + MODELS.length);
   assert.deepEqual(models[0], {
     id: "new-model",
     api: "mistral-conversations",
@@ -63,6 +65,24 @@ test("fetches Vibe's subscription catalog with the active credential and maps ca
     contextWindow: 100_000,
     maxTokens: 32_768,
   });
+  assert.deepEqual(models.slice(1), [...MODELS]);
+});
+
+test("keeps local models the catalog no longer lists", async () => {
+  const refresh = createModelCatalog(async () =>
+    response([
+      {
+        id: "mistral-medium-latest",
+        label: "Mistral Medium 3.5",
+        max_context_length: 262_144,
+        capabilities: { completion_chat: true, function_calling: true, vision: true },
+        parameters: { reasoning: ["none", "high"] },
+      },
+    ]),
+  );
+  const models = await refresh(context());
+  assert.ok(models.some((m) => m.id === "mistral-large-4"));
+  assert.ok(models.some((m) => m.id === "mistral-medium-latest"));
 });
 
 test("uses known model output limit and omits unsupported vision and reasoning", async () => {
@@ -84,7 +104,10 @@ test("uses known model output limit and omits unsupported vision and reasoning",
     ]),
   );
   const models = await refresh(context());
-  assert.equal(models.length, 1);
+  // mistral-medium-3.5 comes from the catalog; the other local fallback
+  // models are merged in because the catalog does not list them.
+  assert.equal(models.length, MODELS.length);
+  assert.equal(models[0]?.id, "mistral-medium-3.5");
   assert.equal(models[0]?.maxTokens, 16_000);
   assert.deepEqual(models[0]?.input, ["text"]);
   assert.equal(models[0]?.reasoning, false);

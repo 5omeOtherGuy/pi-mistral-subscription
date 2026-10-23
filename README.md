@@ -56,7 +56,9 @@ Choose **Mistral subscription (Mistral AI Studio)**, complete the browser sign-i
 
 Pi refreshes this provider's model list from Mistral Vibe's authenticated
 `/v1/model-catalog?surface=vibe-code` endpoint. The returned chat models with
-tool support replace the local list for that refresh. The catalog supplies
+tool support are merged with the local list for that refresh: models the
+catalog no longer lists (for example when the vibe-code surface rotates) stay
+available, since subscription tokens can often still call them. The catalog supplies
 context length, vision support, and reasoning modes; it does not supply an
 output-token limit, so known models retain their local cap and new models use
 a conservative 32,768-token cap. If credentials are unavailable or the request
