@@ -3,7 +3,7 @@
 ## Reporting a vulnerability
 
 Please report vulnerabilities privately through GitHub's
-[private vulnerability reporting](https://github.com/5omeOtherGuy/pi-mistral-subscription/security/advisories/new),
+[private vulnerability reporting](https://github.com/EmmanuelARB/pi-mistral-subscription/security/advisories/new),
 not in a public issue. Include what is affected, how to reproduce it and the impact you expect.
 
 You will get an acknowledgement within 7 days. Fixes are prepared in a private security advisory,

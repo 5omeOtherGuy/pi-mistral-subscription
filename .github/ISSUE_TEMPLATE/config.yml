@@ -1,5 +1,5 @@
 blank_issues_enabled: false
 contact_links:
   - name: Report a security vulnerability
-    url: https://github.com/5omeOtherGuy/pi-mistral-subscription/security/policy
+    url: https://github.com/EmmanuelARB/pi-mistral-subscription/security/policy
     about: Please report vulnerabilities privately, as described in SECURITY.md.

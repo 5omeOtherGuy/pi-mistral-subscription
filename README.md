@@ -2,9 +2,9 @@
 
 Pi package: Mistral subscription provider with browser sign-in through Mistral AI Studio.
 
-Status: released. People install it from `main` or a pinned [release tag](https://github.com/5omeOtherGuy/pi-mistral-subscription/releases); changes land only through reviewed pull requests with a green gate.
+Status: released. People install it from `main` or a pinned [release tag](https://github.com/EmmanuelARB/pi-mistral-subscription/releases); changes land only through reviewed pull requests with a green gate.
 
-[![gate](https://github.com/5omeOtherGuy/pi-mistral-subscription/actions/workflows/gate.yml/badge.svg?branch=main)](https://github.com/5omeOtherGuy/pi-mistral-subscription/actions/workflows/gate.yml)
+[![gate](https://github.com/EmmanuelARB/pi-mistral-subscription/actions/workflows/gate.yml/badge.svg?branch=main)](https://github.com/EmmanuelARB/pi-mistral-subscription/actions/workflows/gate.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 A native [Pi](https://github.com/earendil-works/pi) package that adds a Mistral subscription provider to Pi Agent.
@@ -18,11 +18,11 @@ Requires Pi 0.99.0 or newer and Node.js 22.19.0 or newer; see [Compatibility](#c
 Install directly from this public GitHub repo:
 
 ```sh
-pi install https://github.com/5omeOtherGuy/pi-mistral-subscription
+pi install https://github.com/EmmanuelARB/pi-mistral-subscription
 ```
 
 This follows `main`, and `pi update --extensions` moves it to the latest merged change.
-To stay on a released version instead, pin a tag from the [releases page](https://github.com/5omeOtherGuy/pi-mistral-subscription/releases):
+To stay on a released version instead, pin a tag from the [releases page](https://github.com/EmmanuelARB/pi-mistral-subscription/releases):
 
 ```sh
 pi install git:github.com/EmmanuelARB/pi-mistral-subscription@v0.1.1
@@ -34,13 +34,13 @@ Each release's notes list what changed.
 Or try it for one Pi run without adding it to settings:
 
 ```sh
-pi -e https://github.com/5omeOtherGuy/pi-mistral-subscription --provider mistral-subscription --model mistral-medium-3.5
+pi -e https://github.com/EmmanuelARB/pi-mistral-subscription --provider mistral-subscription --model mistral-medium-3.5
 ```
 
 For local development from a checkout:
 
 ```sh
-git clone https://github.com/5omeOtherGuy/pi-mistral-subscription
+git clone https://github.com/EmmanuelARB/pi-mistral-subscription
 pi install ./pi-mistral-subscription
 ```
 
@@ -222,7 +222,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
 
 ## Contributing, support and security
 
-- Bugs and feature requests: [open an issue](https://github.com/5omeOtherGuy/pi-mistral-subscription/issues/new/choose). Issues are triaged and pull requests reviewed within 7 days.
+- Bugs and feature requests: [open an issue](https://github.com/EmmanuelARB/pi-mistral-subscription/issues/new/choose). Issues are triaged and pull requests reviewed within 7 days.
 - Contributions: [CONTRIBUTING.md](CONTRIBUTING.md). Everyone taking part follows the [Code of Conduct](CODE_OF_CONDUCT.md).
 - Vulnerabilities: report privately as described in [SECURITY.md](SECURITY.md).
 
