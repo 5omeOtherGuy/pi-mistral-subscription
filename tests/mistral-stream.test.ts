@@ -7,7 +7,7 @@ import { streamSimple } from "@earendil-works/pi-ai/api/mistral-conversations";
 import type { ExtensionAPI, ProviderConfig } from "@earendil-works/pi-coding-agent";
 
 import mistralSubscriptionExtension from "../extensions/mistral-subscription/index.ts";
-import { MISTRAL_SUBSCRIPTION_PROVIDER_ID, MODELS } from "../src/models.ts";
+import { MISTRAL_PROVIDER_ID, MISTRAL_SUBSCRIPTION_PROVIDER_ID, MODELS } from "../src/models.ts";
 
 async function requestPayload(id: string, options?: SimpleStreamOptions): Promise<Record<string, unknown>> {
   let payload: Record<string, unknown> | undefined;
@@ -52,11 +52,15 @@ async function requestPayload(id: string, options?: SimpleStreamOptions): Promis
   }
 }
 
+// Mistral rejects none for Large 4, so a request without a level sends no effort.
 for (const [reasoning, effort] of [
-  [undefined, "none"],
+  [undefined, undefined],
+  ["low", "low"],
+  ["medium", "medium"],
   ["high", "high"],
+  ["xhigh", "high"],
 ] as const) {
-  test(`Large 4 sends ${effort} reasoning with thinking ${reasoning ?? "off"}`, async () => {
+  test(`Large 4 sends ${effort ?? "no"} reasoning with thinking ${reasoning ?? "unset"}`, async () => {
     const payload = await requestPayload("mistral-large-4", { reasoning });
     assert.equal(payload.model, "mistral-large-4");
     assert.equal(payload.reasoning_effort, effort);
@@ -86,11 +90,12 @@ test("Large 4 preserves request options and async payload hooks", async () => {
   assert.equal(payload.prompt_mode, undefined);
 });
 
-test("Medium and Small send explicit effort for off and preserve other mappings", async () => {
+test("Medium and Small send only the efforts Mistral accepts", async () => {
   for (const id of ["mistral-medium-3.5", "mistral-small-latest"]) {
     for (const [reasoning, effort] of [
       [undefined, "none"],
-      ["low", "none"],
+      ["minimal", "high"],
+      ["low", "high"],
       ["medium", "high"],
       ["high", "high"],
       ["xhigh", "high"],
@@ -110,17 +115,19 @@ test("non-reasoning models omit reasoning parameters", async () => {
 });
 
 test("extension delegates to Pi's native streaming implementation", () => {
-  let registration: ProviderConfig | undefined;
+  const registrations = new Map<string, ProviderConfig>();
   mistralSubscriptionExtension({
-    registerProvider: (id: string, config: ProviderConfig) => {
-      assert.equal(id, MISTRAL_SUBSCRIPTION_PROVIDER_ID);
-      registration = config;
-    },
+    registerProvider: (id: string, config: ProviderConfig) => registrations.set(id, config),
     registerCommand: () => {},
+    on: () => {},
   } as unknown as ExtensionAPI);
-  assert.ok(registration);
-  assert.equal(registration.api, "mistral-conversations");
-  assert.equal(registration.streamSimple, undefined);
-  assert.ok(registration.models?.some((model) => model.id === "mistral-large-4"));
-  assert.equal(typeof registration.refreshModels, "function");
+  const builtIn = registrations.get(MISTRAL_PROVIDER_ID);
+  const deprecated = registrations.get(MISTRAL_SUBSCRIPTION_PROVIDER_ID);
+  assert.ok(builtIn?.oauth);
+  assert.equal(builtIn.models, undefined, "the built-in provider keeps Pi's models");
+  assert.equal(builtIn.streamSimple, undefined);
+  assert.ok(deprecated);
+  assert.equal(deprecated.api, "mistral-conversations");
+  assert.equal(deprecated.streamSimple, undefined);
+  assert.ok(deprecated.models?.some((model) => model.id === "mistral-large-4"));
 });
