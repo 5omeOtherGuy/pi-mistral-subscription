@@ -1,3 +1,5 @@
+import { isDeepStrictEqual } from "node:util";
+
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { mistralOAuth } from "../../src/mistral-oauth.ts";
 import { subscriptionModels } from "../../src/mistral-overlay.ts";
@@ -12,14 +14,20 @@ function warnIfDeprecated(model: ExtensionContext["model"], ctx: ExtensionContex
   );
 }
 
-// /reload rebuilds the provider and hands the session Pi's unadjusted model, so
-// it would keep running without the overlay until the next model change.
-async function reapplyOverlay(pi: ExtensionAPI, ctx: ExtensionContext) {
-  const current = ctx.model;
-  if (current?.provider !== MISTRAL_PROVIDER_ID || !ctx.modelRegistry.isUsingOAuth(current)) return;
-  await ctx.modelRegistry.refresh({ allowNetwork: false });
-  const model = ctx.modelRegistry.find(MISTRAL_PROVIDER_ID, current.id);
-  if (model) await pi.setModel(model);
+function usesSignIn(model: ExtensionContext["model"], ctx: ExtensionContext): model is NonNullable<typeof model> {
+  return model?.provider === MISTRAL_PROVIDER_ID && ctx.modelRegistry.isUsingOAuth(model);
+}
+
+// Pi can hand a session the model without the overlay: after /reload, and from
+// its selectors while a catalog refresh runs. That object would stay for the session.
+async function selectAdjustedModel(pi: ExtensionAPI, ctx: ExtensionContext, model: ExtensionContext["model"]) {
+  if (!usesSignIn(model, ctx)) return;
+  const adjusted = ctx.modelRegistry.find(MISTRAL_PROVIDER_ID, model.id);
+  if (!adjusted || isDeepStrictEqual(adjusted, model)) return;
+  // A model switch re-derives the level from settings, so carry the current one over.
+  const level = pi.getThinkingLevel();
+  await pi.setModel(adjusted);
+  pi.setThinkingLevel(level);
 }
 
 export default function mistralSubscriptionExtension(pi: ExtensionAPI) {
@@ -38,9 +46,14 @@ export default function mistralSubscriptionExtension(pi: ExtensionAPI) {
 
   pi.on("session_start", async (event, ctx) => {
     warnIfDeprecated(ctx.model, ctx);
-    if (event.reason === "reload") await reapplyOverlay(pi, ctx);
+    if (event.reason !== "reload" || !usesSignIn(ctx.model, ctx)) return;
+    await ctx.modelRegistry.refresh({ allowNetwork: false });
+    await selectAdjustedModel(pi, ctx, ctx.model);
   });
-  pi.on("model_select", (event, ctx) => warnIfDeprecated(event.model, ctx));
+  pi.on("model_select", async (event, ctx) => {
+    warnIfDeprecated(event.model, ctx);
+    await selectAdjustedModel(pi, ctx, event.model);
+  });
 
   pi.registerCommand("mistral-subscription-status", {
     description: "Show how the Mistral subscription sign-in is wired into Pi",

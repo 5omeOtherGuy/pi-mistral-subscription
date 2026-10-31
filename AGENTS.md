@@ -16,7 +16,7 @@ Deliberate deviations from the standard:
 ## Map
 - `extensions/mistral-subscription/index.ts`: Pi entry point; adds the sign-in to the built-in `mistral` provider, keeps the deprecated `mistral-subscription` provider and registers the `/mistral-subscription-status` command.
 - `src/mistral-overlay.ts`: what changes in Pi's `mistral` models while a sign-in is active.
-- `src/models.ts`: fixed model list of the deprecated provider and its thinking-level to `reasoning_effort` maps.
+- `src/models.ts`: fixed model list of the deprecated provider, which also supplies the overlay's fallback models, and the thinking-level to `reasoning_effort` maps.
 - `src/mistral-oauth.ts`: `/login` browser sign-in through Mistral AI Studio, ending in an API key Pi stores.
 - `tests/`: `node:test` suites run through `tsx`.
 - `.github/workflows/gate.yml`: CI job `gate`; `.githooks/pre-push`: gate before push, refuses pushes to `main`; `.agents/setup`: orb setup.

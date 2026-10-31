@@ -137,28 +137,39 @@ test("the deprecated provider keeps existing logins and model names working", as
 
 type Handler = (event: unknown, ctx: unknown) => Promise<void> | void;
 
-function startHandler(setModel: (model: unknown) => Promise<boolean>): Handler {
+function extensionHarness() {
   const handlers = new Map<string, Handler>();
+  const calls: unknown[] = [];
+  let level = "xhigh";
   mistralSubscriptionExtension({
     registerProvider: () => {},
     registerCommand: () => {},
     on: (event: string, handler: Handler) => handlers.set(event, handler),
-    setModel,
+    getThinkingLevel: () => level,
+    setThinkingLevel: (next: string) => {
+      level = next;
+      calls.push(`level:${next}`);
+    },
+    setModel: async (selected: unknown) => {
+      calls.push(selected);
+      level = "low"; // What Pi derives from settings on a model switch.
+      return true;
+    },
   } as unknown as ExtensionAPI);
-  const handler = handlers.get("session_start");
-  assert.ok(handler);
-  return handler;
+  return { calls, emit: (event: string, payload: unknown, ctx: unknown) => handlers.get(event)?.(payload, ctx) };
 }
 
-function sessionContext(usingOAuth: boolean, provider = "mistral") {
+function sessionContext({ oauth = true, provider = "mistral", maxTokens = 262_144 } = {}) {
   const adjusted = { provider, id: "mistral-large-4", maxTokens: 32_768 };
+  const current = { provider, id: "mistral-large-4", maxTokens };
   return {
     adjusted,
+    current,
     ctx: {
-      model: { provider, id: "mistral-large-4", maxTokens: 262_144 },
+      model: current,
       ui: { notify: () => {} },
       modelRegistry: {
-        isUsingOAuth: () => usingOAuth,
+        isUsingOAuth: () => oauth,
         refresh: async () => ({ aborted: false, errors: new Map() }),
         find: () => adjusted,
       },
@@ -166,18 +177,35 @@ function sessionContext(usingOAuth: boolean, provider = "mistral") {
   };
 }
 
-test("/reload puts a signed-in session back on the adjusted model", async () => {
-  const selected: unknown[] = [];
-  const { adjusted, ctx } = sessionContext(true);
-  await startHandler(async (model) => selected.push(model) > 0)({ reason: "reload" }, ctx);
-  assert.deepEqual(selected, [adjusted]);
+test("/reload puts a signed-in session back on the adjusted model and keeps its level", async () => {
+  const { calls, emit } = extensionHarness();
+  const { adjusted, ctx } = sessionContext();
+  await emit("session_start", { reason: "reload" }, ctx);
+  assert.deepEqual(calls, [adjusted, "level:xhigh"]);
 });
 
-test("only /reload with a sign-in on mistral changes the session model", async () => {
-  const selected: unknown[] = [];
-  const handler = startHandler(async (model) => selected.push(model) > 0);
-  await handler({ reason: "startup" }, sessionContext(true).ctx);
-  await handler({ reason: "reload" }, sessionContext(false).ctx);
-  await handler({ reason: "reload" }, sessionContext(true, "zai").ctx);
-  assert.deepEqual(selected, []);
+test("a model picked while Pi's catalog refresh runs gets the overlay too", async () => {
+  const { calls, emit } = extensionHarness();
+  const { adjusted, current, ctx } = sessionContext();
+  await emit("model_select", { model: current }, ctx);
+  assert.deepEqual(calls, [adjusted, "level:xhigh"]);
+});
+
+test("an already adjusted model is left alone", async () => {
+  const { calls, emit } = extensionHarness();
+  const { current, ctx } = sessionContext({ maxTokens: 32_768 });
+  await emit("session_start", { reason: "reload" }, ctx);
+  await emit("model_select", { model: current }, ctx);
+  assert.deepEqual(calls, []);
+});
+
+test("without a sign-in on mistral the session model never changes", async () => {
+  const { calls, emit } = extensionHarness();
+  await emit("session_start", { reason: "startup" }, sessionContext().ctx);
+  for (const options of [{ oauth: false }, { provider: "zai" }]) {
+    const { current, ctx } = sessionContext(options);
+    await emit("session_start", { reason: "reload" }, ctx);
+    await emit("model_select", { model: current }, ctx);
+  }
+  assert.deepEqual(calls, []);
 });

@@ -62,7 +62,8 @@ function model(
 }
 
 // Models of the deprecated `mistral-subscription` provider, which keeps saved
-// settings and sessions working. `id` is sent verbatim to the Mistral API. Reasoning models use thinkingLevelMap
+// settings and sessions working. The overlay also uses a few of them as fallbacks,
+// so removing that provider must keep those entries. `id` is sent verbatim to the Mistral API. Reasoning models use thinkingLevelMap
 // to select reasoning_effort in Pi 0.99+ (see tests/mistral-stream.test.ts).
 export const MODELS = [
   model("mistral-medium-3.5", "Mistral Medium 3.5 (Mistral subscription)", 262144, 262144, true, TEXT_AND_IMAGE_INPUT),

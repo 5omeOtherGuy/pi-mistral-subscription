@@ -45,8 +45,9 @@ const LARGE_4_MAX_TOKENS = 32_768;
 
 function missingModels(models: Model<Api>[]): Model<Api>[] {
   const known = new Set(models.map((model) => model.id));
+  const baseUrl = models[0]?.baseUrl ?? MISTRAL_BASE_URL;
   return MODELS.filter((model) => ALWAYS_OFFERED_MODELS.has(model.id) && !known.has(model.id)).map(
-    (model) => ({ ...model, provider: MISTRAL_PROVIDER_ID, baseUrl: MISTRAL_BASE_URL }) as Model<Api>,
+    (model) => ({ ...model, provider: MISTRAL_PROVIDER_ID, baseUrl }) as Model<Api>,
   );
 }
 

@@ -69,7 +69,7 @@ The sign-in returns a Mistral API key, which Pi stores in `auth.json`. Pi keeps 
 - **It replaces a stored `mistral` API key.** Keep a copy if you still need that key.
 - **`MISTRAL_API_KEY` is ignored while you are signed in.** After `/logout`, Pi uses the variable again without telling you, and that usage is ordinary API usage.
 - **`--api-key` wins for that run.** `pi --api-key <key> --model mistral/<id>` uses your API key instead of the subscription, though model limits stay as adjusted below. The key can end up in your shell history.
-- **`/logout` only removes the key from Pi.** It stays valid at Mistral until you revoke it in the console.
+- **`/logout` only removes the key from Pi.** It stays valid at Mistral until you revoke it in the console. The session keeps its model until you pick another one.
 - **Run `/logout` before you remove this package.** Pi cannot use a stored sign-in without it and leaves `mistral` unavailable, even with `MISTRAL_API_KEY` set.
 
 Without a sign-in, this package changes nothing about the `mistral` provider.
@@ -92,7 +92,7 @@ The models come from Pi's catalog, which Pi keeps up to date. While you are sign
 - It enables image input for DeepSeek V4.1 Flash.
 - It caps Large 4 output at 32,768 tokens to limit a runaway turn.
 
-Other models that are new in Pi's online catalog, such as DeepSeek V4.1 Flash, appear after Pi fetched it, which happens when you open `/model`.
+Other models that are new in Pi's online catalog, such as DeepSeek V4.1 Flash, appear once Pi has fetched it, which it does in the background at interactive start and when you open `/model`. Print mode uses what Pi fetched last.
 
 Reasoning levels by model, checked against the live API on 2026-10-31:
 
@@ -142,7 +142,7 @@ Project layout:
 
 - `extensions/mistral-subscription/index.ts`: the Pi extension entry point. It adds the sign-in to the built-in `mistral` provider, keeps the deprecated `mistral-subscription` provider and registers the `/mistral-subscription-status` command.
 - `src/mistral-overlay.ts`: what changes in Pi's models while signed in.
-- `src/models.ts`: the fixed model list of the deprecated provider.
+- `src/models.ts`: the fixed model list of the deprecated provider, which also supplies the overlay's fallback models.
 - `src/mistral-oauth.ts`: the `/login` flow. It mirrors Mistral Vibe's browser sign-in: it starts a sign-in process on `console.mistral.ai`, polls until you finish in the browser, then exchanges the result for an API key that Pi stores.
 - `tests/`: `node:test` suites run through `tsx`.
   The OAuth tests inject a fake `fetch`.
