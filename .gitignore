@@ -8,6 +8,7 @@ node_modules/
 
 # Local agent scratch
 .amp/in/
+.pi/
 
 # Editors
 .vscode/

@@ -85,12 +85,31 @@ Restart or refresh Pi's model catalog to see later server-side changes.
 | `ministral-8b-2512` | Ministral 3 8B | 262k | no | yes |
 | `ministral-3b-2512` | Ministral 3 3B | 262k | no | yes |
 | `devstral-small-latest` | Devstral Small (legacy, removed from Mistral Vibe) | 128k | no | no |
+| `zai-glm-5-3` | Z.ai GLM 5.3 (Mistral hosted) | 1M | high | no |
+| `zai-glm-5-3-flash` | Z.ai GLM 5.3 Flash (Mistral hosted) | 1M | high | yes |
+| `deepseek-v4-1-flash-1017` | DeepSeek V4.1 Flash 1017 (Mistral hosted, not in Vibe) | 1M | off / high | yes |
 
 Pick one with `--model <id>` or switch inside Pi with `/model`. Which models your key can call depends on your Mistral plan. If a model returns an auth or "model not found" error, fall back to `mistral-medium-3.5`.
 
-For Medium 3.5, Small 4, and Large 4, `--thinking off` explicitly sends
-`reasoning_effort: "none"` rather than relying on the server default.
+For Medium 3.5, Small 4, Large 4, and DeepSeek V4.1 Flash 1017, `--thinking off`
+explicitly sends `reasoning_effort: "none"` rather than relying on the server default.
+The GLM 5.3 models accept low/high/max reasoning efforts but no `none`, so their
+thinking map requests `high` only and `off` falls back to the server default.
 Medium and Small retain their existing mappings for other thinking levels.
+
+#### Cost tracking
+
+Pi's session footer and `/session` show what your usage would cost at La
+Plateforme's published API prices
+([API pricing](https://docs.mistral.ai/inference/pricing)), in USD per million
+input, cached-input and output tokens. The subscription itself is flat-rate, so
+nothing is billed: the figure is the API-equivalent value of the tokens you
+spend. Mistral publishes no pricing endpoint — the Vibe catalog and
+`GET /v1/models` carry no price fields (checked 2026-10-31) — so the prices ship
+in this extension and follow its releases. Models that are not sold on the
+public API (Medium 3.5, Large 3, Devstral Small) log tokens at no cost. The
+pricing page has a single "Cached input" discount, so prompt-cache writes bill
+at the standard input rate.
 
 #### Mistral Large 4 preview
 
@@ -181,6 +200,10 @@ model("<api-model-id>", "<Display Name> (Mistral subscription)", contextWindow, 
   Large 4 overrides it to offer only off/high.
   Verify new mappings in `tests/mistral-stream.test.ts`.
 - **Input**: use `TEXT_AND_IMAGE_INPUT` for vision models and `TEXT_INPUT` otherwise.
+- **Price**: pass the `apiCost` helper in [`src/models.ts`](src/models.ts) with
+  the model's Input / Cached input / Output prices from the
+  [API pricing page](https://docs.mistral.ai/inference/pricing), or leave it out
+  with a comment explaining why no price is published.
 
 Then add the model to the [model table](#models) and run `npm run check`. To try it for real, sign in with `/login` and run:
 
