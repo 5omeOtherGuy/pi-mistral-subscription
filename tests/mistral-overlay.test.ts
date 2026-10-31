@@ -61,9 +61,9 @@ function model(id: string, overrides: Partial<Model<Api>> = {}): Model<Api> {
 }
 
 test("hides models a subscription key cannot call and keeps the rest", () => {
-  assert.deepEqual(ids(subscriptionModels([model("pixtral-large-latest"), model("mistral-medium-3.5")])), [
-    "mistral-medium-3.5",
-  ]);
+  const models = ids(subscriptionModels([model("pixtral-large-latest"), model("mistral-medium-3.5")]));
+  assert.ok(!models.includes("pixtral-large-latest"));
+  assert.ok(models.includes("mistral-medium-3.5"));
 });
 
 test("adds the reasoning efforts Pi's catalog leaves out", () => {
@@ -72,6 +72,27 @@ test("adds the reasoning efforts Pi's catalog leaves out", () => {
   assert.deepEqual(getSupportedThinkingLevels(glm), ["off", "minimal", "low", "medium", "high", "xhigh", "max"]);
   assert.deepEqual(getSupportedThinkingLevels(deepseek), ["off", "low", "high", "xhigh", "max"]);
   assert.deepEqual(deepseek.input, ["text", "image"]);
+});
+
+test("gives Large 4 the levels Mistral accepts whatever Pi's catalog says", () => {
+  const [large] = subscriptionModels([model("mistral-large-4", { thinkingLevelMap: { off: "none", high: "high" } })]);
+  assert.ok(large);
+  assert.deepEqual(getSupportedThinkingLevels(large), ["low", "medium", "high"]);
+});
+
+test("offers GLM 5.3 and Large 4 before Pi has its online catalog", () => {
+  const models = subscriptionModels([model("mistral-small-latest")]);
+  assert.deepEqual(ids(models), ["mistral-small-latest", "mistral-large-4", "zai-glm-5-3", "zai-glm-5-3-flash"]);
+  for (const added of models.slice(1)) {
+    assert.equal(added.provider, "mistral");
+    assert.equal(added.baseUrl, "https://api.mistral.ai");
+  }
+});
+
+test("prefers Pi's entry over the built-in fallback", () => {
+  const models = subscriptionModels([model("zai-glm-5-3-flash", { name: "From Pi" })]);
+  assert.equal(models.filter((entry) => entry.id === "zai-glm-5-3-flash").length, 1);
+  assert.equal(models.find((entry) => entry.id === "zai-glm-5-3-flash")?.name, "From Pi");
 });
 
 test("caps Large 4 output without raising a lower limit", () => {
@@ -86,9 +107,9 @@ test("leaves unlisted models untouched", () => {
 
 test("API-key use of the built-in provider stays exactly as Pi ships it", async () => {
   const credentials = { mistral: { type: "api_key", key: KEY } };
-  const plain = await withRuntime(credentials, async (runtime) => ids(runtime.getModels("mistral")), false);
-  const extended = await withRuntime(credentials, async (runtime) => ids(runtime.getModels("mistral")));
-  assert.ok(plain.includes("pixtral-large-latest"));
+  const plain = await withRuntime(credentials, async (runtime) => [...runtime.getModels("mistral")], false);
+  const extended = await withRuntime(credentials, async (runtime) => [...runtime.getModels("mistral")]);
+  assert.ok(ids(plain).includes("pixtral-large-latest"));
   assert.deepEqual(extended, plain);
 });
 
@@ -112,4 +133,51 @@ test("the deprecated provider keeps existing logins and model names working", as
     assert.ok((await runtime.getAvailable("mistral-subscription")).length > 0);
     assert.equal(runtime.isUsingSubscription("mistral-subscription"), true);
   });
+});
+
+type Handler = (event: unknown, ctx: unknown) => Promise<void> | void;
+
+function startHandler(setModel: (model: unknown) => Promise<boolean>): Handler {
+  const handlers = new Map<string, Handler>();
+  mistralSubscriptionExtension({
+    registerProvider: () => {},
+    registerCommand: () => {},
+    on: (event: string, handler: Handler) => handlers.set(event, handler),
+    setModel,
+  } as unknown as ExtensionAPI);
+  const handler = handlers.get("session_start");
+  assert.ok(handler);
+  return handler;
+}
+
+function sessionContext(usingOAuth: boolean, provider = "mistral") {
+  const adjusted = { provider, id: "mistral-large-4", maxTokens: 32_768 };
+  return {
+    adjusted,
+    ctx: {
+      model: { provider, id: "mistral-large-4", maxTokens: 262_144 },
+      ui: { notify: () => {} },
+      modelRegistry: {
+        isUsingOAuth: () => usingOAuth,
+        refresh: async () => ({ aborted: false, errors: new Map() }),
+        find: () => adjusted,
+      },
+    },
+  };
+}
+
+test("/reload puts a signed-in session back on the adjusted model", async () => {
+  const selected: unknown[] = [];
+  const { adjusted, ctx } = sessionContext(true);
+  await startHandler(async (model) => selected.push(model) > 0)({ reason: "reload" }, ctx);
+  assert.deepEqual(selected, [adjusted]);
+});
+
+test("only /reload with a sign-in on mistral changes the session model", async () => {
+  const selected: unknown[] = [];
+  const handler = startHandler(async (model) => selected.push(model) > 0);
+  await handler({ reason: "startup" }, sessionContext(true).ctx);
+  await handler({ reason: "reload" }, sessionContext(false).ctx);
+  await handler({ reason: "reload" }, sessionContext(true, "zai").ctx);
+  assert.deepEqual(selected, []);
 });

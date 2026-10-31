@@ -31,7 +31,7 @@ pi install git:github.com/5omeOtherGuy/pi-mistral-subscription@v0.1.0
 `pi update` leaves a pinned install on its tag; run `pi install` again with a newer tag to upgrade.
 Each release's notes list what changed.
 
-Or try it for one Pi run without adding it to settings:
+Or try it for one Pi run without adding it to settings. Run `/logout` before you end such a trial: without this package Pi cannot use the stored sign-in, and it then leaves `mistral` unavailable, even with `MISTRAL_API_KEY` set.
 
 ```sh
 pi -e https://github.com/5omeOtherGuy/pi-mistral-subscription --model mistral/mistral-medium-3.5
@@ -54,7 +54,7 @@ Start Pi and sign in:
 
 Choose **Sign in with an account**, then **Mistral**, and complete the browser sign-in with your Mistral Pro or higher account. Pi waits for the sign-in by itself, so you can open the link on any device.
 
-Then pick a model with `/model`, or start with one:
+Then pick a model with `/model`, also if one was already selected, so that it picks up the changes below. Or start with one:
 
 ```sh
 pi --model mistral/zai-glm-5-3 --thinking max
@@ -64,12 +64,13 @@ Change the reasoning level with Shift+Tab or `--thinking`. The footer shows `(su
 
 ### What the sign-in changes
 
-The sign-in creates a Mistral API key and stores it in Pi's `auth.json`. Pi keeps one stored credential per provider, which has a few consequences:
+The sign-in returns a Mistral API key, which Pi stores in `auth.json`. Pi keeps one stored credential per provider, which has a few consequences:
 
 - **It replaces a stored `mistral` API key.** Keep a copy if you still need that key.
 - **`MISTRAL_API_KEY` is ignored while you are signed in.** After `/logout`, Pi uses the variable again without telling you, and that usage is ordinary API usage.
-- **`--api-key` wins for that run.** `pi --api-key <key> --model mistral/<id>` uses your API key instead of the subscription. The key can end up in your shell history.
+- **`--api-key` wins for that run.** `pi --api-key <key> --model mistral/<id>` uses your API key instead of the subscription, though model limits stay as adjusted below. The key can end up in your shell history.
 - **`/logout` only removes the key from Pi.** It stays valid at Mistral until you revoke it in the console.
+- **Run `/logout` before you remove this package.** Pi cannot use a stored sign-in without it and leaves `mistral` unavailable, even with `MISTRAL_API_KEY` set.
 
 Without a sign-in, this package changes nothing about the `mistral` provider.
 
@@ -83,12 +84,15 @@ Pi shows the API-equivalent price of what you use. That figure is not a bill.
 
 ### Models
 
-The models come from Pi's catalog, which Pi keeps up to date. While you are signed in, this package changes four things, because Pi's catalog also describes models a subscription cannot use or leaves out what the API accepts:
+The models come from Pi's catalog, which Pi keeps up to date. While you are signed in, this package changes a few things, because Pi's catalog also describes models a subscription cannot use or leaves out what the API accepts:
 
 - It hides models Mistral refuses for a subscription key.
-- It adds reasoning levels that are missing in Pi's catalog for GLM 5.2 and DeepSeek V4.1 Flash.
+- It keeps Large 4, GLM 5.3 and GLM 5.3 Flash available even before Pi has fetched its online catalog.
+- It sets the reasoning levels of Large 4, GLM 5.2 and DeepSeek V4.1 Flash to what the API accepts.
 - It enables image input for DeepSeek V4.1 Flash.
 - It caps Large 4 output at 32,768 tokens to limit a runaway turn.
+
+Other models that are new in Pi's online catalog, such as DeepSeek V4.1 Flash, appear after Pi fetched it, which happens when you open `/model`.
 
 Reasoning levels by model, checked against the live API on 2026-10-31:
 
@@ -109,7 +113,7 @@ Earlier releases added a separate provider called `mistral-subscription`. It sti
 
 1. Run `/login`, and sign in to **Mistral**.
 2. Replace `mistral-subscription/` with `mistral/` in your settings, such as `enabledModels` and `defaultModel`, and `defaultProvider` with `mistral`.
-3. Run `/logout` and remove the old `mistral-subscription` entry, then revoke its key in the Mistral console.
+3. Run `/logout` and remove the old `mistral-subscription` entry. Do not revoke its key in the Mistral console: the new sign-in returned the same key in our check, so revoking it would end both.
 
 `devstral-small-latest` has no equivalent in Pi's catalog; `devstral-latest` and `devstral-medium-latest` work. A session that was started with the old provider keeps using it. If you remove the package, or a later release drops that provider, Pi moves such sessions and defaults to another model or provider without a clear warning, so migrate first.
 

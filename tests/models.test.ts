@@ -69,7 +69,7 @@ test("Medium and Small offer exactly the efforts Mistral accepts", () => {
   }
 });
 
-test("GLM 5.3 models are available before the first catalog refresh", () => {
+test("GLM 5.3 models offer the reasoning efforts Mistral documents", () => {
   for (const [id, input] of [
     ["zai-glm-5-3", ["text"]],
     ["zai-glm-5-3-flash", ["text", "image"]],

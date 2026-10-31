@@ -5,10 +5,21 @@ import { MISTRAL_BASE_URL, MISTRAL_PROVIDER_ID, MISTRAL_SUBSCRIPTION_PROVIDER_ID
 
 function warnIfDeprecated(model: ExtensionContext["model"], ctx: ExtensionContext) {
   if (model?.provider !== MISTRAL_SUBSCRIPTION_PROVIDER_ID) return;
+  const replacement = model.id === "devstral-small-latest" ? "devstral-latest" : model.id;
   ctx.ui.notify(
-    `${MISTRAL_SUBSCRIPTION_PROVIDER_ID} is deprecated. Run /login, sign in to Mistral, and use mistral/${model.id}.`,
+    `${MISTRAL_SUBSCRIPTION_PROVIDER_ID} is deprecated. Run /login, sign in to Mistral, and use mistral/${replacement}.`,
     "warning",
   );
+}
+
+// /reload rebuilds the provider and hands the session Pi's unadjusted model, so
+// it would keep running without the overlay until the next model change.
+async function reapplyOverlay(pi: ExtensionAPI, ctx: ExtensionContext) {
+  const current = ctx.model;
+  if (current?.provider !== MISTRAL_PROVIDER_ID || !ctx.modelRegistry.isUsingOAuth(current)) return;
+  await ctx.modelRegistry.refresh({ allowNetwork: false });
+  const model = ctx.modelRegistry.find(MISTRAL_PROVIDER_ID, current.id);
+  if (model) await pi.setModel(model);
 }
 
 export default function mistralSubscriptionExtension(pi: ExtensionAPI) {
@@ -25,7 +36,10 @@ export default function mistralSubscriptionExtension(pi: ExtensionAPI) {
     oauth: { ...mistralOAuth, name: "Mistral subscription (deprecated)" },
   });
 
-  pi.on("session_start", (_event, ctx) => warnIfDeprecated(ctx.model, ctx));
+  pi.on("session_start", async (event, ctx) => {
+    warnIfDeprecated(ctx.model, ctx);
+    if (event.reason === "reload") await reapplyOverlay(pi, ctx);
+  });
   pi.on("model_select", (event, ctx) => warnIfDeprecated(event.model, ctx));
 
   pi.registerCommand("mistral-subscription-status", {

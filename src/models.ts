@@ -20,7 +20,7 @@ const MISTRAL_THINKING_LEVEL_MAP = {
   max: null,
 } as const;
 // Mistral documents low, medium and high for Large 4 and rejects none, so off is not offered.
-const LARGE_4_THINKING_LEVEL_MAP = {
+export const LARGE_4_THINKING_LEVEL_MAP = {
   off: null,
   minimal: null,
   low: "low",
@@ -61,8 +61,8 @@ function model(
   };
 }
 
-// Models of the deprecated `mistral-subscription` provider, which exists only so
-// that saved settings and sessions keep working. `id` is sent verbatim to the Mistral API. Reasoning models use thinkingLevelMap
+// Models of the deprecated `mistral-subscription` provider, which keeps saved
+// settings and sessions working. `id` is sent verbatim to the Mistral API. Reasoning models use thinkingLevelMap
 // to select reasoning_effort in Pi 0.99+ (see tests/mistral-stream.test.ts).
 export const MODELS = [
   model("mistral-medium-3.5", "Mistral Medium 3.5 (Mistral subscription)", 262144, 262144, true, TEXT_AND_IMAGE_INPUT),
