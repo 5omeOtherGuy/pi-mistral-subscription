@@ -56,6 +56,32 @@ test("Z.ai GLM 5.3 models match Mistral's hosted catalog", () => {
   assert.equal(flash.thinkingLevelMap?.off, null);
 });
 
+test("DeepSeek V4.1 Flash 1017 matches Mistral's hosted listing and live probe", () => {
+  // Sources: `GET /v1/models` ("DeepSeek V4.1 Flash 1017 with a 1M context limit",
+  // vision, reasoning) and a live chat call per effort: reasoning_effort "none"
+  // answers plainly, low/high/max are accepted and emit a thinking block. No
+  // published output limit: conservative local cap.
+  const deepseek = MODELS.find((model) => model.id === "deepseek-v4-1-flash-1017");
+  assert.ok(deepseek, "DeepSeek V4.1 Flash 1017 is registered");
+  assert.equal(deepseek.name, "DeepSeek V4.1 Flash 1017 (Mistral subscription)");
+  assert.equal(deepseek.contextWindow, 1_048_576);
+  assert.equal(deepseek.maxTokens, 32_768);
+  assert.deepEqual(deepseek.input, ["text", "image"]);
+  assert.equal(deepseek.reasoning, true);
+  assert.equal(deepseek.thinkingLevelMap?.high, "high");
+  assert.equal(deepseek.thinkingLevelMap?.off, "none", "off explicitly requests no reasoning trace");
+  assert.deepEqual(
+    getSupportedThinkingLevels({
+      ...deepseek,
+      api: MISTRAL_API_ID,
+      provider: MISTRAL_SUBSCRIPTION_PROVIDER_ID,
+      baseUrl: MISTRAL_BASE_URL,
+      compat: undefined,
+    }),
+    ["off", "high"],
+  );
+});
+
 test("Large 4 preview supports images and both available reasoning modes", () => {
   const model = MODELS.find((model) => model.id === "mistral-large-4");
   assert.ok(model, "Large 4 preview is registered");

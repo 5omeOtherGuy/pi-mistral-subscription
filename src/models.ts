@@ -84,4 +84,21 @@ export const MODELS = [
     ),
     thinkingLevelMap: { off: null, minimal: null, low: null, medium: null, high: "high", xhigh: null, max: null },
   },
+  // DeepSeek V4.1 Flash 1017, hosted on Mistral's platform (GET /v1/models:
+  // "DeepSeek V4.1 Flash 1017 with a 1M context limit", vision, reasoning). It
+  // is not in the Vibe surface, so only the fallback lists it. Reasoning efforts
+  // confirmed by live calls: none answers plainly, low/high/max are accepted and
+  // emit a thinking block. Like Large 4, off explicitly requests none; no
+  // published output limit, so the conservative local cap applies.
+  {
+    ...model(
+      "deepseek-v4-1-flash-1017",
+      "DeepSeek V4.1 Flash 1017 (Mistral subscription)",
+      1_048_576,
+      32_768,
+      true,
+      TEXT_AND_IMAGE_INPUT,
+    ),
+    thinkingLevelMap: { off: "none", minimal: null, low: null, medium: null, high: "high", xhigh: null, max: null },
+  },
 ] as const;
