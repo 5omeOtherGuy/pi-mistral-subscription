@@ -94,7 +94,8 @@ Pick one with `--model <id>` or switch inside Pi with `/model`. Which models you
 For Medium 3.5, Small 4, Large 4, and DeepSeek V4.1 Flash 1017, `--thinking off`
 explicitly sends `reasoning_effort: "none"` rather than relying on the server default.
 The GLM 5.3 models accept low/high/max reasoning efforts but no `none`, so their
-thinking map requests `high` only and `off` falls back to the server default.
+thinking map requests `high` only: `off` is not a supported level and is clamped
+up to `high`, meaning reasoning cannot be disabled on these models.
 Medium and Small retain their existing mappings for other thinking levels.
 
 #### Cost tracking
