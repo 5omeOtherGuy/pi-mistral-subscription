@@ -30,6 +30,32 @@ test("reasoning models declare native reasoning_effort mappings", () => {
   }
 });
 
+test("Z.ai GLM 5.3 models match Mistral's hosted catalog", () => {
+  // Sources: `/v1/model-catalog?surface=vibe-code` (labels "GLM 5.3 (Mistral Hosted)" /
+  // "GLM 5.3 Flash (Mistral Hosted)", max_context_length 1048576, reasoning low/high/max,
+  // vision false/true) and `GET /v1/models` ("Official Z.ai GLM 5.3 model", "GLM 5.3 Flash
+  // with a 1M context limit"). Neither publishes an output limit: conservative local cap.
+  const glm = MODELS.find((model) => model.id === "zai-glm-5-3");
+  assert.ok(glm, "GLM 5.3 is registered");
+  assert.equal(glm.name, "GLM 5.3 (Mistral subscription)");
+  assert.equal(glm.contextWindow, 1_048_576);
+  assert.equal(glm.maxTokens, 32_768);
+  assert.deepEqual(glm.input, ["text"], "GLM 5.3 has no vision");
+  assert.equal(glm.reasoning, true);
+  assert.equal(glm.thinkingLevelMap?.high, "high");
+  assert.equal(glm.thinkingLevelMap?.off, null, 'no "none" effort exists, so off cannot disable reasoning');
+
+  const flash = MODELS.find((model) => model.id === "zai-glm-5-3-flash");
+  assert.ok(flash, "GLM 5.3 Flash is registered");
+  assert.equal(flash.name, "GLM 5.3 Flash (Mistral subscription)");
+  assert.equal(flash.contextWindow, 1_048_576);
+  assert.equal(flash.maxTokens, 32_768);
+  assert.deepEqual(flash.input, ["text", "image"], "GLM 5.3 Flash has vision");
+  assert.equal(flash.reasoning, true);
+  assert.equal(flash.thinkingLevelMap?.high, "high");
+  assert.equal(flash.thinkingLevelMap?.off, null);
+});
+
 test("Large 4 preview supports images and both available reasoning modes", () => {
   const model = MODELS.find((model) => model.id === "mistral-large-4");
   assert.ok(model, "Large 4 preview is registered");

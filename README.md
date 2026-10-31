@@ -85,11 +85,15 @@ Restart or refresh Pi's model catalog to see later server-side changes.
 | `ministral-8b-2512` | Ministral 3 8B | 262k | no | yes |
 | `ministral-3b-2512` | Ministral 3 3B | 262k | no | yes |
 | `devstral-small-latest` | Devstral Small (legacy, removed from Mistral Vibe) | 128k | no | no |
+| `zai-glm-5-3` | Z.ai GLM 5.3 (Mistral hosted) | 1M | high | no |
+| `zai-glm-5-3-flash` | Z.ai GLM 5.3 Flash (Mistral hosted) | 1M | high | yes |
 
 Pick one with `--model <id>` or switch inside Pi with `/model`. Which models your key can call depends on your Mistral plan. If a model returns an auth or "model not found" error, fall back to `mistral-medium-3.5`.
 
 For Medium 3.5, Small 4, and Large 4, `--thinking off` explicitly sends
 `reasoning_effort: "none"` rather than relying on the server default.
+The GLM 5.3 models accept low/high/max reasoning efforts but no `none`, so their
+thinking map requests `high` only and `off` falls back to the server default.
 Medium and Small retain their existing mappings for other thinking levels.
 
 #### Mistral Large 4 preview

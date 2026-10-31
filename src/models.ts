@@ -62,4 +62,26 @@ export const MODELS = [
   model("ministral-8b-2512", "Ministral 3 8B (Mistral subscription)", 262144, 262144, false, TEXT_AND_IMAGE_INPUT),
   model("ministral-3b-2512", "Ministral 3 3B (Mistral subscription)", 262144, 262144, false, TEXT_AND_IMAGE_INPUT),
   model("devstral-small-latest", "Devstral Small (Mistral subscription)", 128000, 128000, false, TEXT_INPUT),
+  // Z.ai GLM 5.3 models hosted on Mistral's platform, served by the Vibe catalog
+  // (`surface=vibe-code`: "GLM 5.3 (Mistral Hosted)" / "GLM 5.3 Flash (Mistral Hosted)",
+  // max_context_length 1048576) and by `GET /v1/models` ("Official Z.ai GLM 5.3 model",
+  // "GLM 5.3 Flash with a 1M context limit"; the flash variant has vision). Reasoning
+  // efforts are low/high/max with no "none", so off cannot disable the trace; the map
+  // mirrors what the catalog refresh builds for these efforts (high only). Neither
+  // endpoint publishes an output limit, so they keep the conservative local cap.
+  {
+    ...model("zai-glm-5-3", "GLM 5.3 (Mistral subscription)", 1_048_576, 32_768, true, TEXT_INPUT),
+    thinkingLevelMap: { off: null, minimal: null, low: null, medium: null, high: "high", xhigh: null, max: null },
+  },
+  {
+    ...model(
+      "zai-glm-5-3-flash",
+      "GLM 5.3 Flash (Mistral subscription)",
+      1_048_576,
+      32_768,
+      true,
+      TEXT_AND_IMAGE_INPUT,
+    ),
+    thinkingLevelMap: { off: null, minimal: null, low: null, medium: null, high: "high", xhigh: null, max: null },
+  },
 ] as const;
