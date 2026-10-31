@@ -5,7 +5,7 @@
 <!-- What behaves differently after this PR, for users and for contributors. -->
 
 ## Constraints touched
-<!-- Which rules in AGENTS.md and CONTRIBUTING.md this touches (for example the native `mistral-conversations` path, sourced model data, catalog fallback, hermetic tests), or "none". -->
+<!-- Which rules in AGENTS.md and CONTRIBUTING.md this touches (for example the native `mistral-conversations` path, sourced model data, the Pi model overlay, hermetic tests), or "none". -->
 
 ## Evidence
 <!-- `npm run check` must pass. Say what else you ran; live Mistral tests are optional. -->

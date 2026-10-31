@@ -20,7 +20,7 @@ body:
     id: steps
     attributes:
       label: Steps to reproduce
-      description: The exact commands, for example `pi --provider mistral-subscription --model mistral-medium-3.5`.
+      description: The exact commands, for example `pi --model mistral/mistral-medium-3.5`.
     validations:
       required: true
   - type: textarea

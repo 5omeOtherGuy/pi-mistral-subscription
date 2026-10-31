@@ -1,5 +1,6 @@
 import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 
+export const MISTRAL_PROVIDER_ID = "mistral";
 export const MISTRAL_SUBSCRIPTION_PROVIDER_ID = "mistral-subscription";
 export const MISTRAL_API_ID = "mistral-conversations";
 export const MISTRAL_BASE_URL = "https://api.mistral.ai";
@@ -17,13 +18,46 @@ const TEXT_INPUT = ["text"] as const;
 function apiCost(input: number, cachedInput: number, output: number) {
   return { input, cacheRead: cachedInput, cacheWrite: input, output } as const;
 }
-// Maps Pi thinking levels to Mistral's `reasoning_effort` values ("none" | "high").
+// Maps Pi thinking levels to Mistral's `reasoning_effort` values. Levels a model
+// rejects are null, so Pi only offers what the API accepts.
 const MISTRAL_THINKING_LEVEL_MAP = {
   off: "none",
-  low: "none",
-  medium: "high",
+  minimal: null,
+  low: null,
+  medium: null,
   high: "high",
-  xhigh: "high",
+  xhigh: null,
+  max: null,
+} as const;
+// Mistral documents low, medium and high for Large 4 and rejects none, so off is not offered.
+export const LARGE_4_THINKING_LEVEL_MAP = {
+  off: null,
+  minimal: null,
+  low: "low",
+  medium: "medium",
+  high: "high",
+  xhigh: null,
+  max: null,
+} as const;
+// Mistral documents low, high and max for GLM 5.3, and no none, so off is not offered.
+const GLM_THINKING_LEVEL_MAP = {
+  off: null,
+  minimal: null,
+  low: "low",
+  medium: null,
+  high: "high",
+  xhigh: null,
+  max: "max",
+} as const;
+// Checked against the live API on 2026-10-31.
+const DEEPSEEK_THINKING_LEVEL_MAP = {
+  off: "none",
+  minimal: null,
+  low: "low",
+  medium: null,
+  high: "high",
+  xhigh: "xhigh",
+  max: "max",
 } as const;
 
 function model(
@@ -48,7 +82,9 @@ function model(
   };
 }
 
-// Local fallback when the subscription catalog cannot be fetched.
+// Models of the deprecated `mistral-subscription` provider, which keeps saved
+// settings and sessions working. The overlay also uses a few of them as fallbacks,
+// so removing that provider must keep those entries.
 // `id` is sent verbatim to the Mistral API. Reasoning models use thinkingLevelMap
 // to select reasoning_effort in Pi 0.99+ (see tests/mistral-stream.test.ts).
 export const MODELS = [
@@ -76,10 +112,10 @@ export const MODELS = [
       TEXT_AND_IMAGE_INPUT,
       apiCost(0.7, 0.07, 2.1),
     ),
-    // Mistral supports two effort values; off must explicitly request none.
-    thinkingLevelMap: { off: "none", minimal: null, low: null, medium: null, high: "high", xhigh: null, max: null },
+    thinkingLevelMap: LARGE_4_THINKING_LEVEL_MAP,
   },
   // Deprecated and no longer on the pricing page: tokens logged without a price.
+  model("mistral-medium-latest", "Mistral Medium (Mistral subscription)", 262144, 262144, true, TEXT_AND_IMAGE_INPUT),
   model("mistral-large-latest", "Mistral Large 3 (Mistral subscription)", 262144, 262144, false, TEXT_AND_IMAGE_INPUT),
   model(
     "ministral-14b-2512",
@@ -114,8 +150,7 @@ export const MODELS = [
   // (`surface=vibe-code`: "GLM 5.3 (Mistral Hosted)" / "GLM 5.3 Flash (Mistral Hosted)",
   // max_context_length 1048576) and by `GET /v1/models` ("Official Z.ai GLM 5.3 model",
   // "GLM 5.3 Flash with a 1M context limit"; the flash variant has vision). Reasoning
-  // efforts are low/high/max with no "none", so off cannot disable the trace; the map
-  // mirrors what the catalog refresh builds for these efforts (high only). Neither
+  // efforts are low/high/max with no "none", so off cannot disable the trace. Neither
   // endpoint publishes an output limit, so they keep the conservative local cap.
   {
     ...model(
@@ -127,7 +162,7 @@ export const MODELS = [
       TEXT_INPUT,
       apiCost(1.4, 0.14, 4.4),
     ),
-    thinkingLevelMap: { off: null, minimal: null, low: null, medium: null, high: "high", xhigh: null, max: null },
+    thinkingLevelMap: GLM_THINKING_LEVEL_MAP,
   },
   {
     ...model(
@@ -139,14 +174,12 @@ export const MODELS = [
       TEXT_AND_IMAGE_INPUT,
       apiCost(0.15, 0.03, 0.5),
     ),
-    thinkingLevelMap: { off: null, minimal: null, low: null, medium: null, high: "high", xhigh: null, max: null },
+    thinkingLevelMap: GLM_THINKING_LEVEL_MAP,
   },
   // DeepSeek V4.1 Flash 1017, hosted on Mistral's platform (GET /v1/models:
   // "DeepSeek V4.1 Flash 1017 with a 1M context limit", vision, reasoning). It
-  // is not in the Vibe surface, so only the fallback lists it. Reasoning efforts
-  // confirmed by live calls: none answers plainly, low/high/max are accepted and
-  // emit a thinking block. Like Large 4, off explicitly requests none; no
-  // published output limit, so the conservative local cap applies.
+  // is not in the Vibe surface. Reasoning efforts confirmed by live calls: none, low,
+  // high, xhigh and max. No published output limit, so the conservative local cap applies.
   {
     ...model(
       "deepseek-v4-1-flash-1017",
@@ -157,6 +190,6 @@ export const MODELS = [
       TEXT_AND_IMAGE_INPUT,
       apiCost(0.3, 0.007, 1.2),
     ),
-    thinkingLevelMap: { off: "none", minimal: null, low: null, medium: null, high: "high", xhigh: null, max: null },
+    thinkingLevelMap: DEEPSEEK_THINKING_LEVEL_MAP,
   },
 ] as const;

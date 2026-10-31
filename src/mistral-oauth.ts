@@ -178,6 +178,7 @@ export function createMistralOAuth(dependencies: MistralOAuthDependencies = {}) 
 
   return {
     name: "Mistral subscription (Mistral AI Studio)",
+    isSubscription: true,
     async login(callbacks: OAuthLoginCallbacks): Promise<OAuthCredentials> {
       const codeVerifier = createCodeVerifier(dependencies);
       const attempt = await createProcess(fetch, createCodeChallenge(codeVerifier));

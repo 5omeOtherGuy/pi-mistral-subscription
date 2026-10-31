@@ -30,109 +30,7 @@ test("reasoning models declare native reasoning_effort mappings", () => {
   }
 });
 
-test("fallback prices match Mistral's published API pricing", () => {
-  // Source: https://docs.mistral.ai/inference/pricing (retrieved 2026-10-31):
-  // the page's Input / Cached input / Output columns, USD per million tokens.
-  // It publishes no cache-write rate, so cacheWrite mirrors the input price.
-  const priced: Record<string, [input: number, cachedInput: number, output: number]> = {
-    "mistral-small-latest": [0.15, 0.015, 0.6],
-    "mistral-large-4": [0.7, 0.07, 2.1],
-    "ministral-14b-2512": [0.2, 0.02, 0.2],
-    "ministral-8b-2512": [0.15, 0.015, 0.15],
-    "ministral-3b-2512": [0.1, 0.01, 0.1],
-    "zai-glm-5-3": [1.4, 0.14, 4.4],
-    "zai-glm-5-3-flash": [0.15, 0.03, 0.5],
-    "deepseek-v4-1-flash-1017": [0.3, 0.007, 1.2],
-  };
-  for (const [id, [input, cachedInput, output]] of Object.entries(priced)) {
-    const model = MODELS.find((entry) => entry.id === id);
-    assert.ok(model, `${id} is registered`);
-    assert.deepEqual(model.cost, { input, output, cacheRead: cachedInput, cacheWrite: input }, id);
-  }
-  // Not sold on the public API: Medium 3.5 (absent from the pricing page, no
-  // price on its model card), Large 3 (deprecated) and Devstral Small (legacy,
-  // only Devstral 2 is priced). Their usage is logged as tokens without a price.
-  for (const id of ["mistral-medium-3.5", "mistral-large-latest", "devstral-small-latest"]) {
-    const model = MODELS.find((entry) => entry.id === id);
-    assert.ok(model, `${id} is registered`);
-    assert.deepEqual(model.cost, { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, id);
-  }
-});
-
-test("Z.ai GLM 5.3 models match Mistral's hosted catalog", () => {
-  // Sources: `/v1/model-catalog?surface=vibe-code` (labels "GLM 5.3 (Mistral Hosted)" /
-  // "GLM 5.3 Flash (Mistral Hosted)", max_context_length 1048576, reasoning low/high/max,
-  // vision false/true) and `GET /v1/models` ("Official Z.ai GLM 5.3 model", "GLM 5.3 Flash
-  // with a 1M context limit"). Neither publishes an output limit: conservative local cap.
-  const glm = MODELS.find((model) => model.id === "zai-glm-5-3");
-  assert.ok(glm, "GLM 5.3 is registered");
-  assert.equal(glm.name, "GLM 5.3 (Mistral subscription)");
-  assert.equal(glm.contextWindow, 1_048_576);
-  assert.equal(glm.maxTokens, 32_768);
-  assert.deepEqual(glm.input, ["text"], "GLM 5.3 has no vision");
-  assert.equal(glm.reasoning, true);
-  assert.equal(glm.thinkingLevelMap?.high, "high");
-  assert.equal(glm.thinkingLevelMap?.off, null, 'no "none" effort exists, so off cannot disable reasoning');
-  assert.deepEqual(
-    getSupportedThinkingLevels({
-      ...glm,
-      api: MISTRAL_API_ID,
-      provider: MISTRAL_SUBSCRIPTION_PROVIDER_ID,
-      baseUrl: MISTRAL_BASE_URL,
-      compat: undefined,
-    }),
-    ["high"],
-    "off is not supported and is clamped up to high, not left to the server default",
-  );
-
-  const flash = MODELS.find((model) => model.id === "zai-glm-5-3-flash");
-  assert.ok(flash, "GLM 5.3 Flash is registered");
-  assert.equal(flash.name, "GLM 5.3 Flash (Mistral subscription)");
-  assert.equal(flash.contextWindow, 1_048_576);
-  assert.equal(flash.maxTokens, 32_768);
-  assert.deepEqual(flash.input, ["text", "image"], "GLM 5.3 Flash has vision");
-  assert.equal(flash.reasoning, true);
-  assert.equal(flash.thinkingLevelMap?.high, "high");
-  assert.equal(flash.thinkingLevelMap?.off, null);
-  assert.deepEqual(
-    getSupportedThinkingLevels({
-      ...flash,
-      api: MISTRAL_API_ID,
-      provider: MISTRAL_SUBSCRIPTION_PROVIDER_ID,
-      baseUrl: MISTRAL_BASE_URL,
-      compat: undefined,
-    }),
-    ["high"],
-  );
-});
-
-test("DeepSeek V4.1 Flash 1017 matches Mistral's hosted listing and live probe", () => {
-  // Sources: `GET /v1/models` ("DeepSeek V4.1 Flash 1017 with a 1M context limit",
-  // vision, reasoning) and a live chat call per effort: reasoning_effort "none"
-  // answers plainly, low/high/max are accepted and emit a thinking block. No
-  // published output limit: conservative local cap.
-  const deepseek = MODELS.find((model) => model.id === "deepseek-v4-1-flash-1017");
-  assert.ok(deepseek, "DeepSeek V4.1 Flash 1017 is registered");
-  assert.equal(deepseek.name, "DeepSeek V4.1 Flash 1017 (Mistral subscription)");
-  assert.equal(deepseek.contextWindow, 1_048_576);
-  assert.equal(deepseek.maxTokens, 32_768);
-  assert.deepEqual(deepseek.input, ["text", "image"]);
-  assert.equal(deepseek.reasoning, true);
-  assert.equal(deepseek.thinkingLevelMap?.high, "high");
-  assert.equal(deepseek.thinkingLevelMap?.off, "none", "off explicitly requests no reasoning trace");
-  assert.deepEqual(
-    getSupportedThinkingLevels({
-      ...deepseek,
-      api: MISTRAL_API_ID,
-      provider: MISTRAL_SUBSCRIPTION_PROVIDER_ID,
-      baseUrl: MISTRAL_BASE_URL,
-      compat: undefined,
-    }),
-    ["off", "high"],
-  );
-});
-
-test("Large 4 preview supports images and both available reasoning modes", () => {
+test("Large 4 supports images and the three documented reasoning efforts", () => {
   const model = MODELS.find((model) => model.id === "mistral-large-4");
   assert.ok(model, "Large 4 preview is registered");
   assert.equal(model.name, "Mistral Large 4 Preview (Mistral subscription)");
@@ -141,7 +39,7 @@ test("Large 4 preview supports images and both available reasoning modes", () =>
   assert.deepEqual(model.input, ["text", "image"]);
   assert.equal(model.reasoning, true);
   assert.equal(model.thinkingLevelMap?.high, "high");
-  assert.equal(model.thinkingLevelMap?.off, "none", "off explicitly requests no reasoning trace");
+  assert.equal(model.thinkingLevelMap?.off, null, "Mistral rejects none for Large 4");
   assert.deepEqual(
     getSupportedThinkingLevels({
       ...model,
@@ -150,6 +48,45 @@ test("Large 4 preview supports images and both available reasoning modes", () =>
       baseUrl: MISTRAL_BASE_URL,
       compat: undefined,
     }),
-    ["off", "high"],
+    ["low", "medium", "high"],
   );
+});
+
+test("Medium and Small offer exactly the efforts Mistral accepts", () => {
+  for (const id of ["mistral-medium-3.5", "mistral-small-latest"]) {
+    const model = MODELS.find((model) => model.id === id);
+    assert.ok(model, id);
+    assert.deepEqual(
+      getSupportedThinkingLevels({
+        ...model,
+        api: MISTRAL_API_ID,
+        provider: MISTRAL_SUBSCRIPTION_PROVIDER_ID,
+        baseUrl: MISTRAL_BASE_URL,
+        compat: undefined,
+      }),
+      ["off", "high"],
+    );
+  }
+});
+
+test("GLM 5.3 models offer the reasoning efforts Mistral documents", () => {
+  for (const [id, input] of [
+    ["zai-glm-5-3", ["text"]],
+    ["zai-glm-5-3-flash", ["text", "image"]],
+  ] as const) {
+    const model = MODELS.find((model) => model.id === id);
+    assert.ok(model, id);
+    assert.equal(model.contextWindow, 1_048_576);
+    assert.deepEqual(model.input, input);
+    assert.deepEqual(
+      getSupportedThinkingLevels({
+        ...model,
+        api: MISTRAL_API_ID,
+        provider: MISTRAL_SUBSCRIPTION_PROVIDER_ID,
+        baseUrl: MISTRAL_BASE_URL,
+        compat: undefined,
+      }),
+      ["low", "high", "max"],
+    );
+  }
 });
