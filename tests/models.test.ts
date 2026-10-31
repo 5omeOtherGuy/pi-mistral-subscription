@@ -73,6 +73,17 @@ test("Z.ai GLM 5.3 models match Mistral's hosted catalog", () => {
   assert.equal(glm.reasoning, true);
   assert.equal(glm.thinkingLevelMap?.high, "high");
   assert.equal(glm.thinkingLevelMap?.off, null, 'no "none" effort exists, so off cannot disable reasoning');
+  assert.deepEqual(
+    getSupportedThinkingLevels({
+      ...glm,
+      api: MISTRAL_API_ID,
+      provider: MISTRAL_SUBSCRIPTION_PROVIDER_ID,
+      baseUrl: MISTRAL_BASE_URL,
+      compat: undefined,
+    }),
+    ["high"],
+    "off is not supported and is clamped up to high, not left to the server default",
+  );
 
   const flash = MODELS.find((model) => model.id === "zai-glm-5-3-flash");
   assert.ok(flash, "GLM 5.3 Flash is registered");
@@ -83,6 +94,16 @@ test("Z.ai GLM 5.3 models match Mistral's hosted catalog", () => {
   assert.equal(flash.reasoning, true);
   assert.equal(flash.thinkingLevelMap?.high, "high");
   assert.equal(flash.thinkingLevelMap?.off, null);
+  assert.deepEqual(
+    getSupportedThinkingLevels({
+      ...flash,
+      api: MISTRAL_API_ID,
+      provider: MISTRAL_SUBSCRIPTION_PROVIDER_ID,
+      baseUrl: MISTRAL_BASE_URL,
+      compat: undefined,
+    }),
+    ["high"],
+  );
 });
 
 test("DeepSeek V4.1 Flash 1017 matches Mistral's hosted listing and live probe", () => {
