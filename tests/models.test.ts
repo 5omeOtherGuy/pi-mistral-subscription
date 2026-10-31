@@ -30,6 +30,35 @@ test("reasoning models declare native reasoning_effort mappings", () => {
   }
 });
 
+test("fallback prices match Mistral's published API pricing", () => {
+  // Source: https://docs.mistral.ai/inference/pricing (retrieved 2026-10-31):
+  // the page's Input / Cached input / Output columns, USD per million tokens.
+  // It publishes no cache-write rate, so cacheWrite mirrors the input price.
+  const priced: Record<string, [input: number, cachedInput: number, output: number]> = {
+    "mistral-small-latest": [0.15, 0.015, 0.6],
+    "mistral-large-4": [0.7, 0.07, 2.1],
+    "ministral-14b-2512": [0.2, 0.02, 0.2],
+    "ministral-8b-2512": [0.15, 0.015, 0.15],
+    "ministral-3b-2512": [0.1, 0.01, 0.1],
+    "zai-glm-5-3": [1.4, 0.14, 4.4],
+    "zai-glm-5-3-flash": [0.15, 0.03, 0.5],
+    "deepseek-v4-1-flash-1017": [0.3, 0.007, 1.2],
+  };
+  for (const [id, [input, cachedInput, output]] of Object.entries(priced)) {
+    const model = MODELS.find((entry) => entry.id === id);
+    assert.ok(model, `${id} is registered`);
+    assert.deepEqual(model.cost, { input, output, cacheRead: cachedInput, cacheWrite: input }, id);
+  }
+  // Not sold on the public API: Medium 3.5 (absent from the pricing page, no
+  // price on its model card), Large 3 (deprecated) and Devstral Small (legacy,
+  // only Devstral 2 is priced). Their usage is logged as tokens without a price.
+  for (const id of ["mistral-medium-3.5", "mistral-large-latest", "devstral-small-latest"]) {
+    const model = MODELS.find((entry) => entry.id === id);
+    assert.ok(model, `${id} is registered`);
+    assert.deepEqual(model.cost, { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, id);
+  }
+});
+
 test("Z.ai GLM 5.3 models match Mistral's hosted catalog", () => {
   // Sources: `/v1/model-catalog?surface=vibe-code` (labels "GLM 5.3 (Mistral Hosted)" /
   // "GLM 5.3 Flash (Mistral Hosted)", max_context_length 1048576, reasoning low/high/max,

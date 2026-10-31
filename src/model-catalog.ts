@@ -61,7 +61,12 @@ function catalogModels(payload: unknown): CatalogModel[] {
       reasoning,
       ...(thinkingLevelMap ? { thinkingLevelMap } : {}),
       input: capabilities.vision === true ? ["text", "image"] : ["text"],
-      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+      // The catalog payload carries no pricing fields (verified 2026-10-31: its
+      // objects expose only id, label, aliases, description, publisher, recommended,
+      // group, max_context_length, parameters, capabilities), so known models keep
+      // their local API price; catalog additions unknown to the local list log
+      // tokens without a price.
+      cost: known ? { ...known.cost } : { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
       contextWindow,
       // The catalog only publishes context length, not an output limit.
       maxTokens: Math.min(known?.maxTokens ?? DEFAULT_OUTPUT_TOKENS, contextWindow),

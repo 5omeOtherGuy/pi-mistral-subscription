@@ -68,6 +68,36 @@ test("fetches Vibe's subscription catalog with the active credential and maps ca
   assert.deepEqual(models.slice(1), [...MODELS]);
 });
 
+test("catalog models known to the local list keep their local API price", async () => {
+  // The catalog payload has no pricing fields, so prices come from the local
+  // fallback table (https://docs.mistral.ai/inference/pricing, retrieved
+  // 2026-10-31); catalog additions unknown to it log tokens without a price.
+  const refresh = createModelCatalog(async () =>
+    response([
+      {
+        id: "mistral-small-latest",
+        label: "Mistral Small 4",
+        max_context_length: 256_000,
+        capabilities: { completion_chat: true, function_calling: true, vision: true },
+        parameters: { reasoning: ["none", "high"] },
+      },
+      {
+        id: "new-model",
+        label: "New Model",
+        max_context_length: 100_000,
+        capabilities: { completion_chat: true, function_calling: true },
+      },
+    ]),
+  );
+  const models = await refresh(context());
+  const small = models.find((model) => model.id === "mistral-small-latest");
+  assert.ok(small, "Small 4 is present");
+  assert.deepEqual(small.cost, { input: 0.15, output: 0.6, cacheRead: 0.015, cacheWrite: 0.15 });
+  const unknown = models.find((model) => model.id === "new-model");
+  assert.ok(unknown, "the catalog addition is present");
+  assert.deepEqual(unknown.cost, { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 });
+});
+
 test("keeps local models the catalog no longer lists", async () => {
   const refresh = createModelCatalog(async () =>
     response([
