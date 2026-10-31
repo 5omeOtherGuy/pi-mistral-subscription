@@ -1,6 +1,6 @@
 {
   "name": "pi-mistral-subscription",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Pi package adding Mistral subscription sign-in through Mistral AI Studio to Pi's built-in mistral provider.",
   "license": "MIT",
   "type": "module",
