@@ -96,14 +96,14 @@ Other models that are new in Pi's online catalog, such as DeepSeek V4.1 Flash, a
 
 Reasoning levels by model, checked against the live API on 2026-10-31:
 
-| Model | Reasoning levels | Notes |
-| --- | --- | --- |
-| `mistral-large-4` | low / medium / high | Mistral rejects `none`; `--thinking off` falls back to `low` |
-| `zai-glm-5-3`, `zai-glm-5-3-flash` | low / high / max | Mistral rejects `none`; `--thinking off` falls back to `low` |
-| `zai-glm-5-2`, `glm-5-2` | off / minimal / low / medium / high / xhigh / max | |
-| `deepseek-v4-1-flash-1017` | off / low / high / xhigh / max | |
-| `mistral-medium-3.5`, `mistral-medium-latest`, `mistral-small-latest` | off / high | Mistral has no levels in between |
-| `mistral-large-latest`, Ministral 3 | none | These models reject every reasoning value |
+| Model                                                                 | Reasoning levels                                  | Notes                                                        |
+| --------------------------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------ |
+| `mistral-large-4`                                                     | low / medium / high                               | Mistral rejects `none`; `--thinking off` falls back to `low` |
+| `zai-glm-5-3`, `zai-glm-5-3-flash`                                    | low / high / max                                  | Mistral rejects `none`; `--thinking off` falls back to `low` |
+| `zai-glm-5-2`, `glm-5-2`                                              | off / minimal / low / medium / high / xhigh / max |                                                              |
+| `deepseek-v4-1-flash-1017`                                            | off / low / high / xhigh / max                    |                                                              |
+| `mistral-medium-3.5`, `mistral-medium-latest`, `mistral-small-latest` | off / high                                        | Mistral has no levels in between                             |
+| `mistral-large-latest`, Ministral 3                                   | none                                              | These models reject every reasoning value                    |
 
 Small does not always see images: it often answers that it received none, more so with reasoning on, and Mistral's API does the same without Pi. Use `--thinking off` and retry, or pick Medium 3.5 for images.
 
