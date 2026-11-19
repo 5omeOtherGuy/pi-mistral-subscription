@@ -119,7 +119,7 @@ Earlier releases added a separate provider called `mistral-subscription`. It sti
 
 ## Compatibility
 
-- **Pi**: 0.99.0 or newer (`peerDependencies`). CI tests against Pi 1.3.0, last verified 2026-10-17.
+- **Pi**: 0.99.0 or newer (`peerDependencies`). CI tests against Pi 1.5.2, last verified 2026-11-19.
 - **Node.js**: 22.19.0 or newer (`engines`). CI runs Node 22 on Ubuntu 24.04.
 - **Mistral**: a Pro or higher subscription with access through Mistral AI Studio.
 

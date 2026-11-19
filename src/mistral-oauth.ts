@@ -12,7 +12,7 @@ const API_KEY_EXPIRES_MS = 10 * 365 * 24 * 60 * 60 * 1000;
 const DEFAULT_POLL_INTERVAL_SECONDS = 3;
 
 export type FetchLike = (url: string, init?: RequestInit) => Promise<Response>;
-export type Sleep = (milliseconds: number) => Promise<void>;
+export type Sleep = (milliseconds: number, signal?: AbortSignal) => Promise<void>;
 export type Now = () => number;
 
 export type MistralOAuthDependencies = {
@@ -35,8 +35,40 @@ type PollResult = {
   message?: string;
 };
 
-function defaultSleep(milliseconds: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+const CANCELLED_MESSAGE = "Mistral browser sign-in was cancelled";
+
+function throwIfCancelled(signal: AbortSignal | undefined): void {
+  if (signal?.aborted) throw new Error(CANCELLED_MESSAGE);
+}
+
+// Settles with the cancellation error as soon as the signal aborts, even when an
+// injected fetch or sleep ignores the signal, and never lets a result through
+// once the signal has aborted.
+async function untilCancelled<T>(signal: AbortSignal | undefined, task: () => Promise<T>): Promise<T> {
+  throwIfCancelled(signal);
+  if (!signal) return task();
+  let onAbort: (() => void) | undefined;
+  const cancelled = new Promise<never>((_, reject) => {
+    onAbort = () => reject(new Error(CANCELLED_MESSAGE));
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
+  try {
+    const result = await Promise.race([task(), cancelled]);
+    throwIfCancelled(signal);
+    return result;
+  } catch (error) {
+    throwIfCancelled(signal);
+    throw error;
+  } finally {
+    if (onAbort) signal.removeEventListener("abort", onAbort);
+  }
+}
+
+function defaultSleep(milliseconds: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(resolve, milliseconds);
+    signal?.addEventListener("abort", () => clearTimeout(timer), { once: true });
+  });
 }
 
 function base64Url(bytes: Buffer): string {
@@ -80,14 +112,21 @@ function validateUrlAgainstBaseUrl(value: string, baseUrl: string, message: stri
   return value;
 }
 
-async function createProcess(fetch: FetchLike, codeChallenge: string): Promise<SignInProcess> {
+async function createProcess(
+  fetch: FetchLike,
+  codeChallenge: string,
+  signal: AbortSignal | undefined,
+): Promise<SignInProcess> {
   const message = "Failed to start Mistral browser sign-in";
-  const response = await fetch(`${BROWSER_AUTH_API_BASE_URL}${SIGN_IN_PATH}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ code_challenge: codeChallenge, code_challenge_method: "S256" }),
+  const payload = await untilCancelled(signal, async () => {
+    const response = await fetch(`${BROWSER_AUTH_API_BASE_URL}${SIGN_IN_PATH}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code_challenge: codeChallenge, code_challenge_method: "S256" }),
+      signal,
+    });
+    return responseJson(response, message);
   });
-  const payload = await responseJson(response, message);
   if (!isRecord(payload)) throw new Error(`${message} response was malformed`);
 
   const signInUrl = stringField(payload, "sign_in_url", message);
@@ -103,11 +142,15 @@ async function createProcess(fetch: FetchLike, codeChallenge: string): Promise<S
   };
 }
 
-async function poll(fetch: FetchLike, pollUrl: string): Promise<PollResult> {
+async function poll(fetch: FetchLike, pollUrl: string, signal: AbortSignal | undefined): Promise<PollResult> {
   const message = "Mistral browser sign-in status could not be retrieved";
-  const response = await fetch(validateUrlAgainstBaseUrl(pollUrl, BROWSER_AUTH_API_BASE_URL, message));
-  if (response.status === 410) return { status: "expired" };
-  const payload = await responseJson(response, message);
+  const url = validateUrlAgainstBaseUrl(pollUrl, BROWSER_AUTH_API_BASE_URL, message);
+  const payload = await untilCancelled(signal, async () => {
+    const response = await fetch(url, { signal });
+    if (response.status === 410) return undefined;
+    return responseJson(response, message);
+  });
+  if (payload === undefined) return { status: "expired" };
   if (!isRecord(payload)) throw new Error(`${message} response was malformed`);
   const status = payload.status;
   if (
@@ -129,17 +172,18 @@ async function poll(fetch: FetchLike, pollUrl: string): Promise<PollResult> {
 async function waitForCompletion(
   fetch: FetchLike,
   attempt: SignInProcess,
-  callbacks: OAuthLoginCallbacks,
+  signal: AbortSignal | undefined,
   sleep: Sleep,
   now: Now,
 ): Promise<string> {
   while (now() < attempt.expiresAt) {
-    if (callbacks.signal?.aborted) throw new Error("Mistral browser sign-in was cancelled");
-    const result = await poll(fetch, attempt.pollUrl);
+    const result = await poll(fetch, attempt.pollUrl, signal);
     switch (result.status) {
-      case "pending":
-        await sleep(Math.min(DEFAULT_POLL_INTERVAL_SECONDS * 1000, Math.max(0, attempt.expiresAt - now())));
+      case "pending": {
+        const delay = Math.min(DEFAULT_POLL_INTERVAL_SECONDS * 1000, Math.max(0, attempt.expiresAt - now()));
+        await untilCancelled(signal, () => sleep(delay, signal));
         break;
+      }
       case "completed":
         if (result.exchangeToken) return result.exchangeToken;
         throw new Error("Mistral browser sign-in completed without an exchange token");
@@ -151,6 +195,7 @@ async function waitForCompletion(
         throw new Error(result.message ?? "Mistral browser sign-in failed");
     }
   }
+  throwIfCancelled(signal);
   throw new Error("Mistral browser sign-in timed out");
 }
 
@@ -159,14 +204,18 @@ async function exchange(
   processId: string,
   exchangeToken: string,
   codeVerifier: string,
+  signal: AbortSignal | undefined,
 ): Promise<string> {
   const message = "Failed to exchange Mistral browser sign-in for an API key";
-  const response = await fetch(`${BROWSER_AUTH_API_BASE_URL}${SIGN_IN_PATH}/${processId}/exchange`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ exchange_token: exchangeToken, code_verifier: codeVerifier }),
+  const payload = await untilCancelled(signal, async () => {
+    const response = await fetch(`${BROWSER_AUTH_API_BASE_URL}${SIGN_IN_PATH}/${processId}/exchange`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ exchange_token: exchangeToken, code_verifier: codeVerifier }),
+      signal,
+    });
+    return responseJson(response, message);
   });
-  const payload = await responseJson(response, message);
   if (!isRecord(payload)) throw new Error(`${message} response was malformed`);
   return stringField(payload, "api_key", message);
 }
@@ -180,16 +229,18 @@ export function createMistralOAuth(dependencies: MistralOAuthDependencies = {}) 
     name: "Mistral subscription (Mistral AI Studio)",
     isSubscription: true,
     async login(callbacks: OAuthLoginCallbacks): Promise<OAuthCredentials> {
+      const { signal } = callbacks;
       const codeVerifier = createCodeVerifier(dependencies);
-      const attempt = await createProcess(fetch, createCodeChallenge(codeVerifier));
+      const attempt = await createProcess(fetch, createCodeChallenge(codeVerifier), signal);
       callbacks.onAuth({
         url: attempt.signInUrl,
         instructions: "Sign in with your Mistral Pro or higher account, then return to Pi.",
       });
       callbacks.onProgress?.("Waiting for Mistral browser sign-in...");
-      const exchangeToken = await waitForCompletion(fetch, attempt, callbacks, sleep, now);
+      const exchangeToken = await waitForCompletion(fetch, attempt, signal, sleep, now);
+      throwIfCancelled(signal);
       callbacks.onProgress?.("Completing Mistral browser sign-in...");
-      const apiKey = await exchange(fetch, attempt.processId, exchangeToken, codeVerifier);
+      const apiKey = await exchange(fetch, attempt.processId, exchangeToken, codeVerifier, signal);
       return { access: apiKey, refresh: "mistral-browser-sign-in", expires: now() + API_KEY_EXPIRES_MS };
     },
     async refreshToken(credentials: OAuthCredentials): Promise<OAuthCredentials> {
