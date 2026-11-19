@@ -105,11 +105,14 @@ test("leaves unlisted models untouched", () => {
   assert.equal(subscriptionModels([original])[0], original);
 });
 
+// Pi 0.99 ships Pixtral, while the newer catalog ships Labs Leanstral.
+const SUBSCRIPTION_BLOCKED_CATALOG_IDS = ["pixtral-large-latest", "labs-leanstral-1-5-1"];
+
 test("API-key use of the built-in provider stays exactly as Pi ships it", async () => {
   const credentials = { mistral: { type: "api_key", key: KEY } };
   const plain = await withRuntime(credentials, async (runtime) => [...runtime.getModels("mistral")], false);
   const extended = await withRuntime(credentials, async (runtime) => [...runtime.getModels("mistral")]);
-  assert.ok(ids(plain).includes("pixtral-large-latest"));
+  assert.ok(plain.some(({ id }) => SUBSCRIPTION_BLOCKED_CATALOG_IDS.includes(id)));
   assert.deepEqual(extended, plain);
 });
 
@@ -117,7 +120,7 @@ test("a browser sign-in applies the overlay to the built-in provider", async () 
   await withRuntime({ mistral: oauth }, async (runtime) => {
     const models = ids(runtime.getModels("mistral"));
     assert.ok(models.includes("mistral-medium-3.5"));
-    assert.ok(!models.includes("pixtral-large-latest"));
+    assert.ok(SUBSCRIPTION_BLOCKED_CATALOG_IDS.every((id) => !models.includes(id)));
     assert.equal(runtime.getModel("mistral", "mistral-large-4")?.maxTokens, 32_768);
     assert.equal(runtime.isUsingSubscription("mistral"), true);
   });
