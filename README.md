@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 A [Pi](https://github.com/earendil-works/pi) package that lets you use your Mistral subscription with Pi's built-in `mistral` provider.
-It adds browser sign-in through Mistral AI Studio to `/login`. Pi supplies the model catalog, streaming, and prompt caching. The extension adjusts the catalog for signed-in subscribers.
+It adds browser sign-in through Mistral AI Studio to `/login`. Pi supplies the model catalog, streaming, and prompt caching. The extension filters a few catalog entries when you sign in.
 
 Install from `main` or a pinned [release tag](https://github.com/5omeOtherGuy/pi-mistral-subscription/releases). Changes land through reviewed pull requests with a passing gate.
 
@@ -53,7 +53,7 @@ Choose **Sign in with an account**, then **Mistral**, and complete the browser s
 
 If you cancel browser sign-in, Pi stops waiting even when a request is still pending. A late response does not complete the cancelled sign-in. This behavior ships in [v0.2.1](https://github.com/5omeOtherGuy/pi-mistral-subscription/releases/tag/v0.2.1).
 
-After sign-in, select a model with `/model` again to apply the subscription settings. You can also select a model when you start Pi:
+After you sign in, select a model with `/model`. You can also select a model when you start Pi:
 
 ```sh
 pi --model mistral/zai-glm-5-3 --thinking max
@@ -67,7 +67,7 @@ The sign-in returns a Mistral API key, which Pi stores in `auth.json`. Pi keeps 
 
 - **It replaces a stored `mistral` API key.** Keep a copy if you still need that key.
 - **`MISTRAL_API_KEY` is ignored while you are signed in.** After `/logout`, Pi uses the variable again without telling you, and that usage is ordinary API usage.
-- **`--api-key` wins for that run.** `pi --api-key <key> --model mistral/<id>` uses your API key instead of the subscription, though model limits stay as adjusted below. The key can end up in your shell history.
+- **`--api-key` wins for that run.** `pi --api-key <key> --model mistral/<id>` uses your API key instead of the subscription. The key can end up in your shell history.
 - **`/logout` only removes the key from Pi.** It stays valid at Mistral until you revoke it in the console. The session keeps its model until you pick another one.
 - **Run `/logout` before you remove this package.** Pi cannot use a stored sign-in without it and leaves `mistral` unavailable, even with `MISTRAL_API_KEY` set.
 
@@ -81,26 +81,9 @@ Pi shows the API-equivalent price of what you use. That figure is not a bill.
 
 ## Model reference
 
-The models come from Pi's catalog, which Pi keeps up to date. While you are signed in, this package changes a few things, because Pi's catalog also describes models a subscription cannot use or leaves out what the API accepts:
+Pi's catalog supplies model availability, reasoning levels, image support, and output limits for the built-in `mistral` provider. When you sign in, the extension hides IDs that Mistral rejected during a subscription check on 2026-10-31.
 
-- It hides models Mistral refuses for a subscription key.
-- It keeps Large 4, GLM 5.3 and GLM 5.3 Flash available even before Pi has fetched its online catalog.
-- It sets the reasoning levels of Large 4, GLM 5.2 and DeepSeek V4.1 Flash to what the API accepts.
-- It enables image input for DeepSeek V4.1 Flash.
-- It caps Large 4 output at 32,768 tokens to limit a runaway turn.
-
-Other models that are new in Pi's online catalog, such as DeepSeek V4.1 Flash, appear once Pi has fetched it, which it does in the background at interactive start and when you open `/model`. Print mode uses what Pi fetched last.
-
-Reasoning levels by model, checked against the live API on 2026-10-31:
-
-| Model                                                                 | Reasoning levels                                  | Notes                                                        |
-| --------------------------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------ |
-| `mistral-large-4`                                                     | low / medium / high                               | Mistral rejects `none`; `--thinking off` falls back to `low` |
-| `zai-glm-5-3`, `zai-glm-5-3-flash`                                    | low / high / max                                  | Mistral rejects `none`; `--thinking off` falls back to `low` |
-| `zai-glm-5-2`, `glm-5-2`                                              | off / minimal / low / medium / high / xhigh / max |                                                              |
-| `deepseek-v4-1-flash-1017`                                            | off / low / high / xhigh / max                    |                                                              |
-| `mistral-medium-3.5`, `mistral-medium-latest`, `mistral-small-latest` | off / high                                        | Mistral has no levels in between                             |
-| `mistral-large-latest`, Ministral 3                                   | none                                              | These models reject every reasoning value                    |
+Older Pi versions may need to fetch the online catalog before models such as Large 4 and GLM 5.3 appear. Open `/model` in an interactive session to refresh the catalog. Print mode uses Pi's bundled catalog and any catalog it has already fetched.
 
 Small does not always see images: it often answers that it received none, more so with reasoning on, and Mistral's API does the same without Pi. Use `--thinking off` and retry, or pick Medium 3.5 for images.
 
@@ -138,8 +121,8 @@ node --test --import tsx tests/models.test.ts
 Project layout:
 
 - `extensions/mistral-subscription/index.ts`: the Pi extension entry point. It adds the sign-in to the built-in `mistral` provider, keeps the deprecated `mistral-subscription` provider and registers the `/mistral-subscription-status` command.
-- `src/mistral-overlay.ts`: what changes in Pi's models while signed in.
-- `src/models.ts`: the fixed model list of the deprecated provider, which also supplies the overlay's fallback models.
+- `src/mistral-overlay.ts`: model IDs to hide while signed in.
+- `src/models.ts`: the fixed model list of the deprecated provider.
 - `src/mistral-oauth.ts`: the `/login` flow. It mirrors Mistral Vibe's browser sign-in: it starts a sign-in process on `console.mistral.ai`, polls until you finish in the browser, then exchanges the result for an API key that Pi stores.
 - `tests/`: `node:test` suites run through `tsx`.
   The OAuth tests inject a fake `fetch`.
@@ -148,7 +131,7 @@ Project layout:
 
 ### Change models
 
-Pi owns the catalog, so a new Mistral model needs no change here. Change [`src/mistral-overlay.ts`](src/mistral-overlay.ts) only when a subscription key behaves differently from what Pi's catalog says, and add a test to `tests/mistral-overlay.test.ts`. Live requests spend subscription quota and require the owner's authorization. Once authorized, sign in with `/login` and run:
+Pi owns the catalog. If you confirm that a subscription key cannot use a listed model, update [`src/mistral-overlay.ts`](src/mistral-overlay.ts) and `tests/mistral-overlay.test.ts`. Live requests spend subscription quota and require the owner's authorization. Once authorized, sign in with `/login` and run:
 
 ```sh
 pi -e . --model mistral/<api-model-id>

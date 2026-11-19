@@ -5,7 +5,6 @@ import { join } from "node:path";
 import { test } from "node:test";
 
 import type { Api, Model } from "@earendil-works/pi-ai";
-import { getSupportedThinkingLevels } from "@earendil-works/pi-ai";
 import { type ExtensionAPI, ModelRuntime } from "@earendil-works/pi-coding-agent";
 
 import mistralSubscriptionExtension from "../extensions/mistral-subscription/index.ts";
@@ -44,7 +43,7 @@ async function withRuntime<T>(
 const oauth = { type: "oauth", access: KEY, refresh: "mistral-browser-sign-in", expires: 4_102_444_800_000 };
 const ids = (models: readonly Model<Api>[]) => models.map((model) => model.id);
 
-function model(id: string, overrides: Partial<Model<Api>> = {}): Model<Api> {
+function model(id: string): Model<Api> {
   return {
     id,
     name: id,
@@ -56,69 +55,42 @@ function model(id: string, overrides: Partial<Model<Api>> = {}): Model<Api> {
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
     contextWindow: 1_000_000,
     maxTokens: 262_144,
-    ...overrides,
   } as Model<Api>;
 }
 
-test("hides models a subscription key cannot call and keeps the rest", () => {
-  const models = ids(subscriptionModels([model("pixtral-large-latest"), model("mistral-medium-3.5")]));
-  assert.ok(!models.includes("pixtral-large-latest"));
-  assert.ok(models.includes("mistral-medium-3.5"));
-});
+test("removes the hidden IDs and preserves the entries Pi provided", () => {
+  const visible = [model("mistral-large-4"), model("zai-glm-5-2"), model("deepseek-v4-1-flash-1017")];
+  const models = subscriptionModels([model("pixtral-large-latest"), ...visible, model("labs-leanstral-1-5-1")]);
 
-test("adds the reasoning efforts Pi's catalog leaves out", () => {
-  const [glm, deepseek] = subscriptionModels([model("zai-glm-5-2"), model("deepseek-v4-1-flash-1017")]);
-  assert.ok(glm && deepseek);
-  assert.deepEqual(getSupportedThinkingLevels(glm), ["off", "minimal", "low", "medium", "high", "xhigh", "max"]);
-  assert.deepEqual(getSupportedThinkingLevels(deepseek), ["off", "low", "high", "xhigh", "max"]);
-  assert.deepEqual(deepseek.input, ["text", "image"]);
-});
-
-test("gives Large 4 the levels Mistral accepts whatever Pi's catalog says", () => {
-  const [large] = subscriptionModels([model("mistral-large-4", { thinkingLevelMap: { off: "none", high: "high" } })]);
-  assert.ok(large);
-  assert.deepEqual(getSupportedThinkingLevels(large), ["low", "medium", "high"]);
-});
-
-test("offers GLM 5.3 and Large 4 before Pi has its online catalog", () => {
-  const models = subscriptionModels([model("mistral-small-latest")]);
-  assert.deepEqual(ids(models), ["mistral-small-latest", "mistral-large-4", "zai-glm-5-3", "zai-glm-5-3-flash"]);
-  for (const added of models.slice(1)) {
-    assert.equal(added.provider, "mistral");
-    assert.equal(added.baseUrl, "https://api.mistral.ai");
+  assert.deepEqual(models, visible);
+  for (const [index, original] of visible.entries()) {
+    assert.equal(models[index], original);
   }
 });
 
-test("prefers Pi's entry over the built-in fallback", () => {
-  const models = subscriptionModels([model("zai-glm-5-3-flash", { name: "From Pi" })]);
-  assert.equal(models.filter((entry) => entry.id === "zai-glm-5-3-flash").length, 1);
-  assert.equal(models.find((entry) => entry.id === "zai-glm-5-3-flash")?.name, "From Pi");
-});
-
-test("caps Large 4 output without raising a lower limit", () => {
-  assert.equal(subscriptionModels([model("mistral-large-4")])[0]?.maxTokens, 32_768);
-  assert.equal(subscriptionModels([model("mistral-large-4", { maxTokens: 1_000 })])[0]?.maxTokens, 1_000);
-});
-
-test("leaves unlisted models untouched", () => {
+test("does not add models that Pi's catalog omits", () => {
   const original = model("mistral-small-latest");
-  assert.equal(subscriptionModels([original])[0], original);
+  assert.deepEqual(subscriptionModels([original]), [original]);
+  assert.deepEqual(subscriptionModels([]), []);
 });
 
 test("API-key use of the built-in provider stays exactly as Pi ships it", async () => {
   const credentials = { mistral: { type: "api_key", key: KEY } };
   const plain = await withRuntime(credentials, async (runtime) => [...runtime.getModels("mistral")], false);
   const extended = await withRuntime(credentials, async (runtime) => [...runtime.getModels("mistral")]);
-  assert.ok(ids(plain).includes("pixtral-large-latest"));
+  assert.ok(plain.length > 0);
   assert.deepEqual(extended, plain);
 });
 
-test("a browser sign-in applies the overlay to the built-in provider", async () => {
+test("a browser sign-in filters Pi's catalog without changing visible model metadata", async () => {
+  const plain = await withRuntime({ mistral: { type: "api_key", key: KEY } }, async (runtime) => [
+    ...runtime.getModels("mistral"),
+  ]);
+
   await withRuntime({ mistral: oauth }, async (runtime) => {
-    const models = ids(runtime.getModels("mistral"));
-    assert.ok(models.includes("mistral-medium-3.5"));
-    assert.ok(!models.includes("pixtral-large-latest"));
-    assert.equal(runtime.getModel("mistral", "mistral-large-4")?.maxTokens, 32_768);
+    const signedIn = runtime.getModels("mistral");
+    assert.ok(signedIn.length > 0);
+    assert.deepEqual(signedIn, subscriptionModels(plain));
     assert.equal(runtime.isUsingSubscription("mistral"), true);
   });
 });
@@ -133,79 +105,4 @@ test("the deprecated provider keeps existing logins and model names working", as
     assert.ok((await runtime.getAvailable("mistral-subscription")).length > 0);
     assert.equal(runtime.isUsingSubscription("mistral-subscription"), true);
   });
-});
-
-type Handler = (event: unknown, ctx: unknown) => Promise<void> | void;
-
-function extensionHarness() {
-  const handlers = new Map<string, Handler>();
-  const calls: unknown[] = [];
-  let level = "xhigh";
-  mistralSubscriptionExtension({
-    registerProvider: () => {},
-    registerCommand: () => {},
-    on: (event: string, handler: Handler) => handlers.set(event, handler),
-    getThinkingLevel: () => level,
-    setThinkingLevel: (next: string) => {
-      level = next;
-      calls.push(`level:${next}`);
-    },
-    setModel: async (selected: unknown) => {
-      calls.push(selected);
-      level = "low"; // What Pi derives from settings on a model switch.
-      return true;
-    },
-  } as unknown as ExtensionAPI);
-  return { calls, emit: (event: string, payload: unknown, ctx: unknown) => handlers.get(event)?.(payload, ctx) };
-}
-
-function sessionContext({ oauth = true, provider = "mistral", maxTokens = 262_144 } = {}) {
-  const adjusted = { provider, id: "mistral-large-4", maxTokens: 32_768 };
-  const current = { provider, id: "mistral-large-4", maxTokens };
-  return {
-    adjusted,
-    current,
-    ctx: {
-      model: current,
-      ui: { notify: () => {} },
-      modelRegistry: {
-        isUsingOAuth: () => oauth,
-        refresh: async () => ({ aborted: false, errors: new Map() }),
-        find: () => adjusted,
-      },
-    },
-  };
-}
-
-test("/reload puts a signed-in session back on the adjusted model and keeps its level", async () => {
-  const { calls, emit } = extensionHarness();
-  const { adjusted, ctx } = sessionContext();
-  await emit("session_start", { reason: "reload" }, ctx);
-  assert.deepEqual(calls, [adjusted, "level:xhigh"]);
-});
-
-test("a model picked while Pi's catalog refresh runs gets the overlay too", async () => {
-  const { calls, emit } = extensionHarness();
-  const { adjusted, current, ctx } = sessionContext();
-  await emit("model_select", { model: current }, ctx);
-  assert.deepEqual(calls, [adjusted, "level:xhigh"]);
-});
-
-test("an already adjusted model is left alone", async () => {
-  const { calls, emit } = extensionHarness();
-  const { current, ctx } = sessionContext({ maxTokens: 32_768 });
-  await emit("session_start", { reason: "reload" }, ctx);
-  await emit("model_select", { model: current }, ctx);
-  assert.deepEqual(calls, []);
-});
-
-test("without a sign-in on mistral the session model never changes", async () => {
-  const { calls, emit } = extensionHarness();
-  await emit("session_start", { reason: "startup" }, sessionContext().ctx);
-  for (const options of [{ oauth: false }, { provider: "zai" }]) {
-    const { current, ctx } = sessionContext(options);
-    await emit("session_start", { reason: "reload" }, ctx);
-    await emit("model_select", { model: current }, ctx);
-  }
-  assert.deepEqual(calls, []);
 });
