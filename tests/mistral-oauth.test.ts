@@ -52,15 +52,8 @@ describe("Mistral OAuth", () => {
     let pollCount = 0;
     const fetch: FetchLike = async (url, init) => {
       requests.push({ url, body: init?.body ? JSON.parse(String(init.body)) : undefined });
-      if (url.endsWith("/vibe/sign-in")) {
-        return jsonResponse({
-          process_id: "process-1",
-          sign_in_url: "https://console.mistral.ai/sign-in/process-1",
-          poll_url: "https://console.mistral.ai/api/vibe/sign-in/process-1",
-          expires_at: "2035-01-01T00:00:00Z",
-        });
-      }
-      if (url === "https://console.mistral.ai/api/vibe/sign-in/process-1") {
+      if (url.endsWith("/vibe/sign-in")) return startResponse();
+      if (url === PROCESS_URL) {
         pollCount += 1;
         return jsonResponse(
           pollCount === 1 ? { status: "pending" } : { status: "completed", exchange_token: "exchange-1" },
@@ -102,6 +95,47 @@ describe("Mistral OAuth", () => {
 
     const oauth = createMistralOAuth({ fetch });
     await assert.rejects(() => oauth.login(callbacks()), /unexpected URL/);
+  });
+
+  for (const { body, httpStatus, message } of [
+    { body: { status: "completed" }, message: /completed without an exchange token/ },
+    { body: { status: "completed", exchange_token: "" }, message: /completed without an exchange token/ },
+    { body: { status: "completed", exchange_token: 42 }, message: /completed without an exchange token/ },
+    { body: { status: "unknown" }, message: /returned an unknown state/ },
+    { body: { status: "denied" }, message: /sign-in was denied/ },
+    { body: { status: "error", message: "Browser sign-in failed" }, message: /Browser sign-in failed/ },
+    { body: null, httpStatus: 410, message: /sign-in expired/ },
+  ]) {
+    it(`rejects poll response ${JSON.stringify(body)} without exchanging a token`, async () => {
+      const fetch: FetchLike = async (url) => {
+        if (url.endsWith("/vibe/sign-in")) return startResponse();
+        if (url === PROCESS_URL) return jsonResponse(body, { status: httpStatus });
+        assert.fail(`unexpected url ${url}`);
+      };
+
+      await assert.rejects(() => createMistralOAuth({ fetch }).login(callbacks()), message);
+    });
+  }
+
+  it("stops polling when the sign-in expires", async () => {
+    const expiresAt = Date.parse("2035-01-01T00:00:00Z");
+    let now = expiresAt - 1;
+    const fetch: FetchLike = async (url) => {
+      if (url.endsWith("/vibe/sign-in")) return startResponse();
+      assert.equal(url, PROCESS_URL);
+      assert.equal(now, expiresAt - 1);
+      return jsonResponse({ status: "pending" });
+    };
+    const oauth = createMistralOAuth({
+      fetch,
+      now: () => now,
+      sleep: async (delay) => {
+        assert.equal(delay, 1);
+        now += delay;
+      },
+    });
+
+    await assert.rejects(() => oauth.login(callbacks()), /sign-in timed out/);
   });
 
   describe("cancellation", () => {
