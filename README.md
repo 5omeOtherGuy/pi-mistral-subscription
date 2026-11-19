@@ -22,7 +22,7 @@ This follows `main`, and `pi update --extensions` moves it to the latest merged 
 To stay on a released version instead, pin a tag from the [releases page](https://github.com/5omeOtherGuy/pi-mistral-subscription/releases):
 
 ```sh
-pi install git:github.com/5omeOtherGuy/pi-mistral-subscription@v0.2.1
+pi install git:github.com/5omeOtherGuy/pi-mistral-subscription@v0.3.0
 ```
 
 `pi update` leaves a pinned install on its tag; run `pi install` again with a newer tag to upgrade.
