@@ -178,9 +178,10 @@ def main():
             if failure:
                 result["failure"] = failure
         if args.mode == "direct" and (
-            len(result["results"]) != 2 or any(turn.get("http") != 200 for turn in result["results"])
+            len(result["results"]) != 2
+            or any(turn.get("http") != 200 or not isinstance(turn.get("input"), int) for turn in result["results"])
         ):
-            result["failure"] = "expected two successful direct requests"
+            result["failure"] = "expected two successful direct requests with usage"
         failed |= bool(result.get("failure"))
         print(json.dumps(result), flush=True)
     if failed:

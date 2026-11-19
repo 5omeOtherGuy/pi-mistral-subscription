@@ -21,6 +21,7 @@ export default function observe(pi: ExtensionAPI) {
 
   // Pi's headers hook runs before the Mistral transport adds its affinity header.
   const fetch = globalThis.fetch;
+  let requests = 0;
   globalThis.fetch = async (input, init) => {
     const request = new Request(input, init);
     if (request.url !== "https://api.mistral.ai/v1/chat/completions") {
@@ -37,7 +38,10 @@ export default function observe(pi: ExtensionAPI) {
     if (payload.model !== model || payload.max_tokens !== MAX_TOKENS || !payload.stream || request.method !== "POST") {
       throw new Error("Unsafe model or output limit in verification request");
     }
-    const prefix = payload.messages?.find((message) => message.role === "user")?.content;
+    if (requests >= 2) throw new Error("Verification request limit reached");
+    requests += 1;
+    const firstUser = payload.messages?.findIndex((message) => message.role === "user") ?? -1;
+    const prefix = firstUser >= 0 ? payload.messages?.slice(0, firstUser + 1) : undefined;
     const affinity = request.headers.get("x-affinity");
     report({
       kind: "request",
