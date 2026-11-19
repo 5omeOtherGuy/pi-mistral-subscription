@@ -1,7 +1,13 @@
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { mistralOAuth } from "../../src/mistral-oauth.ts";
 import { subscriptionModels } from "../../src/mistral-overlay.ts";
-import { MISTRAL_BASE_URL, MISTRAL_PROVIDER_ID, MISTRAL_SUBSCRIPTION_PROVIDER_ID, MODELS } from "../../src/models.ts";
+import {
+  MISTRAL_API_ID,
+  MISTRAL_BASE_URL,
+  MISTRAL_PROVIDER_ID,
+  MISTRAL_SUBSCRIPTION_PROVIDER_ID,
+  MODELS,
+} from "../../src/models.ts";
 
 function warnIfDeprecated(model: ExtensionContext["model"], ctx: ExtensionContext) {
   if (model?.provider !== MISTRAL_SUBSCRIPTION_PROVIDER_ID) return;
@@ -20,7 +26,7 @@ export default function mistralSubscriptionExtension(pi: ExtensionAPI) {
   pi.registerProvider(MISTRAL_SUBSCRIPTION_PROVIDER_ID, {
     name: "Mistral subscription (deprecated)",
     baseUrl: MISTRAL_BASE_URL,
-    api: "mistral-conversations",
+    api: MISTRAL_API_ID,
     authHeader: true,
     models: [...MODELS],
     oauth: { ...mistralOAuth, name: "Mistral subscription (deprecated)" },
