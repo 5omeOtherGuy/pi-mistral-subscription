@@ -12,10 +12,30 @@ function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
   });
 }
 
-function callbacks(): OAuthLoginCallbacks & { authUrls: string[]; progress: string[] } {
+const PROCESS_URL = "https://console.mistral.ai/api/vibe/sign-in/process-1";
+
+function startResponse(): Response {
+  return jsonResponse({
+    process_id: "process-1",
+    sign_in_url: "https://console.mistral.ai/sign-in/process-1",
+    poll_url: PROCESS_URL,
+    expires_at: "2035-01-01T00:00:00Z",
+  });
+}
+
+function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => void } {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+}
+
+function callbacks(signal?: AbortSignal): OAuthLoginCallbacks & { authUrls: string[]; progress: string[] } {
   const authUrls: string[] = [];
   const progress: string[] = [];
   return {
+    signal,
     authUrls,
     progress,
     onAuth: (info) => authUrls.push(info.url),
@@ -82,5 +102,101 @@ describe("Mistral OAuth", () => {
 
     const oauth = createMistralOAuth({ fetch });
     await assert.rejects(() => oauth.login(callbacks()), /unexpected URL/);
+  });
+
+  describe("cancellation", () => {
+    const cancelled = /Mistral browser sign-in was cancelled/;
+
+    it("does not start a sign-in when the signal is already aborted", async () => {
+      const requests: string[] = [];
+      const fetch: FetchLike = async (url) => {
+        requests.push(url);
+        return startResponse();
+      };
+      const controller = new AbortController();
+      controller.abort();
+
+      const cb = callbacks(controller.signal);
+      await assert.rejects(() => createMistralOAuth({ fetch }).login(cb), cancelled);
+      assert.deepEqual(requests, []);
+      assert.deepEqual(cb.authUrls, []);
+    });
+
+    it("does not exchange when cancelled while a poll is in flight", async () => {
+      const controller = new AbortController();
+      const pollResponse = deferred<Response>();
+      const requests: string[] = [];
+      const signals: (AbortSignal | null | undefined)[] = [];
+      const fetch: FetchLike = async (url, init) => {
+        requests.push(url);
+        signals.push(init?.signal);
+        if (url.endsWith("/vibe/sign-in")) return startResponse();
+        if (url === PROCESS_URL) {
+          controller.abort();
+          return pollResponse.promise;
+        }
+        return jsonResponse({ api_key: "mistral-api-key" });
+      };
+
+      const login = createMistralOAuth({ fetch, sleep: async () => {} }).login(callbacks(controller.signal));
+      await assert.rejects(() => login, cancelled);
+      pollResponse.resolve(jsonResponse({ status: "completed", exchange_token: "exchange-1" }));
+      await new Promise((resolve) => setImmediate(resolve));
+
+      assert.deepEqual(requests, ["https://console.mistral.ai/api/vibe/sign-in", PROCESS_URL]);
+      assert.ok(signals.every((signal) => signal === controller.signal));
+    });
+
+    it("stops waiting between polls when cancelled during a sleep that ignores the signal", async () => {
+      const controller = new AbortController();
+      let polls = 0;
+      const fetch: FetchLike = async (url) => {
+        if (url.endsWith("/vibe/sign-in")) return startResponse();
+        if (url === PROCESS_URL) {
+          polls += 1;
+          return jsonResponse({ status: "pending" });
+        }
+        throw new Error(`unexpected url ${url}`);
+      };
+      const sleepSignals: (AbortSignal | undefined)[] = [];
+      const sleep = (_milliseconds: number, signal?: AbortSignal) => {
+        sleepSignals.push(signal);
+        controller.abort();
+        return new Promise<void>(() => {});
+      };
+
+      await assert.rejects(() => createMistralOAuth({ fetch, sleep }).login(callbacks(controller.signal)), cancelled);
+      assert.equal(polls, 1);
+      assert.deepEqual(sleepSignals, [controller.signal]);
+    });
+
+    it("rejects a cancelled exchange even when fetch ignores the signal", async () => {
+      const controller = new AbortController();
+      const exchangeResponse = deferred<Response>();
+      let exchangeSignal: AbortSignal | null | undefined;
+      const fetch: FetchLike = async (url, init) => {
+        if (url.endsWith("/vibe/sign-in")) return startResponse();
+        if (url === PROCESS_URL) return jsonResponse({ status: "completed", exchange_token: "exchange-1" });
+        exchangeSignal = init?.signal;
+        controller.abort();
+        return exchangeResponse.promise;
+      };
+
+      const login = createMistralOAuth({ fetch }).login(callbacks(controller.signal));
+      await assert.rejects(() => login, cancelled);
+      exchangeResponse.resolve(jsonResponse({ api_key: "mistral-api-key" }));
+      assert.equal(exchangeSignal, controller.signal);
+    });
+
+    it("reports cancellation when an aborted fetch rejects", async () => {
+      const controller = new AbortController();
+      const fetch: FetchLike = async (url, init) => {
+        if (url.endsWith("/vibe/sign-in")) return startResponse();
+        controller.abort();
+        throw init?.signal?.reason ?? new Error("aborted");
+      };
+
+      await assert.rejects(() => createMistralOAuth({ fetch }).login(callbacks(controller.signal)), cancelled);
+    });
   });
 });
