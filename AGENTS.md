@@ -42,7 +42,7 @@ Cut a release when `git log $(git describe --tags --abbrev=0 origin/main)..origi
 
 - Use Pi's native `mistral-conversations` API path; no proxy server or custom streaming adapter.
 - Use Pi's built-in `mistral` provider for everything it already does; the overlay holds only what a subscription key does differently from Pi's catalog, and API-key use of `mistral` stays exactly as Pi ships it.
-- Model IDs, limits and capabilities come from Mistral's documentation, the Mistral Vibe source or a live check the owner asked for; cite them in the PR and update the README reasoning table and tests together.
+- Model IDs, limits and capabilities come from Mistral's documentation, the Mistral Vibe source or a live check the owner asked for; cite them in the PR and update the README model reference and tests together.
 - Tests are hermetic: OAuth tests inject a fake `fetch`, streaming tests use a loopback server. Build credential-shaped strings from parts.
 - Never commit API keys, OAuth credentials, Pi auth files or captured requests. Live tests against Mistral spend the owner's subscription quota: never run them unless the owner asks.
 - Keep `peerDependencies` at the oldest Pi version that works (`>=0.99.0`) and the Pi dev dependencies on the newest Pi release, so CI tests the newest host. `@types/node` follows the `engines.node` line.
