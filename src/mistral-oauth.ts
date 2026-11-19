@@ -1,5 +1,6 @@
 import type { Buffer } from "node:buffer";
 import { createHash, randomBytes } from "node:crypto";
+import { setTimeout as sleepTimer } from "node:timers/promises";
 
 import type { OAuthCredentials, OAuthLoginCallbacks } from "@earendil-works/pi-ai";
 
@@ -65,10 +66,7 @@ async function untilCancelled<T>(signal: AbortSignal | undefined, task: () => Pr
 }
 
 function defaultSleep(milliseconds: number, signal?: AbortSignal): Promise<void> {
-  return new Promise((resolve) => {
-    const timer = setTimeout(resolve, milliseconds);
-    signal?.addEventListener("abort", () => clearTimeout(timer), { once: true });
-  });
+  return sleepTimer(milliseconds, undefined, { signal });
 }
 
 function base64Url(bytes: Buffer): string {
@@ -232,15 +230,18 @@ export function createMistralOAuth(dependencies: MistralOAuthDependencies = {}) 
       const { signal } = callbacks;
       const codeVerifier = createCodeVerifier(dependencies);
       const attempt = await createProcess(fetch, createCodeChallenge(codeVerifier), signal);
+      throwIfCancelled(signal);
       callbacks.onAuth({
         url: attempt.signInUrl,
         instructions: "Sign in with your Mistral Pro or higher account, then return to Pi.",
       });
+      throwIfCancelled(signal);
       callbacks.onProgress?.("Waiting for Mistral browser sign-in...");
       const exchangeToken = await waitForCompletion(fetch, attempt, signal, sleep, now);
       throwIfCancelled(signal);
       callbacks.onProgress?.("Completing Mistral browser sign-in...");
       const apiKey = await exchange(fetch, attempt.processId, exchangeToken, codeVerifier, signal);
+      throwIfCancelled(signal);
       return { access: apiKey, refresh: "mistral-browser-sign-in", expires: now() + API_KEY_EXPIRES_MS };
     },
     async refreshToken(credentials: OAuthCredentials): Promise<OAuthCredentials> {
