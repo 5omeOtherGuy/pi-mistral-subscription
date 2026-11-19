@@ -109,7 +109,7 @@ test("API-key use of the built-in provider stays exactly as Pi ships it", async 
   const credentials = { mistral: { type: "api_key", key: KEY } };
   const plain = await withRuntime(credentials, async (runtime) => [...runtime.getModels("mistral")], false);
   const extended = await withRuntime(credentials, async (runtime) => [...runtime.getModels("mistral")]);
-  assert.ok(ids(plain).includes("mistral-large-4-0-8"));
+  assert.ok(ids(plain).includes("pixtral-large-latest"));
   assert.deepEqual(extended, plain);
 });
 
@@ -117,7 +117,7 @@ test("a browser sign-in applies the overlay to the built-in provider", async () 
   await withRuntime({ mistral: oauth }, async (runtime) => {
     const models = ids(runtime.getModels("mistral"));
     assert.ok(models.includes("mistral-medium-3.5"));
-    assert.ok(!models.includes("mistral-large-4-0-8"));
+    assert.ok(!models.includes("pixtral-large-latest"));
     assert.equal(runtime.getModel("mistral", "mistral-large-4")?.maxTokens, 32_768);
     assert.equal(runtime.isUsingSubscription("mistral"), true);
   });
