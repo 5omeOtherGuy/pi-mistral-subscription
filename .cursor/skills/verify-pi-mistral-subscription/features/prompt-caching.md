@@ -10,7 +10,7 @@ Send a second turn in the same Pi session while signed in to Mistral, preserving
 
 ## Verify the behavior
 
-Run `--mode pi` as shown in the skill. Compare the request key and prefix across turns, then compare the HTTP affinity hash and raw provider usage with Pi's assistant usage. If raw cached tokens are positive but Pi's `cacheRead` differs, inspect the native `mistral-conversations` stream parser. If the key, affinity or prefix changes, inspect Pi's session and request serialization and compare the model overlay with the built-in configuration.
+Run `--mode pi` as shown in the skill. Compare the request key, affinity hash, and prefix across turns. Compare the provider's reported usage with Pi's assistant usage. If Pi's `cacheRead` differs, inspect the native `mistral-conversations` stream parser. If the key, affinity, or prefix changes, inspect Pi's session and request serialization.
 
 For misses with stable inputs, run the direct control only for the affected approved model:
 

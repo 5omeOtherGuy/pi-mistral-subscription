@@ -14,4 +14,4 @@ Run the driver's `--mode pi` with an approved cheap model. Check both resolved a
 
 ## Limits
 
-Pin the tested Pi version in the evidence. The model catalog belongs to Pi, and the subscription overlay changes selected model configuration. The provider serializes requests and parses the stream. An absent model needs a catalog/overlay check before any provider attribution.
+Record the tested Pi version. Pi supplies the model metadata, serializes requests, and parses the stream. If a model is missing, check Pi's catalog and the subscription hide list.
