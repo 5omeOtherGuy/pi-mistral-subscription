@@ -9,5 +9,10 @@
     "types": ["node"],
     "skipLibCheck": true
   },
-  "include": ["src/**/*.ts", "extensions/**/*.ts", "tests/**/*.ts"]
+  "include": [
+    "src/**/*.ts",
+    "extensions/**/*.ts",
+    "tests/**/*.ts",
+    ".cursor/skills/verify-pi-mistral-subscription/scripts/observe.ts"
+  ]
 }

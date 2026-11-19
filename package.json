@@ -29,11 +29,12 @@
   },
   "scripts": {
     "test": "node --test --test-reporter=dot --import tsx \"tests/**/*.test.ts\"",
+    "test:probe": "python3 -B -m unittest discover -s .cursor/skills/verify-pi-mistral-subscription/scripts",
     "typecheck": "tsc --noEmit",
     "lint": "biome ci --colors=off .",
     "secrets": "secretlint \"**/*\"",
     "pack:check": "npm pack --dry-run --loglevel=error > /dev/null",
-    "check": "npm run -s lint && npm run -s test && npm run -s typecheck && npm run -s secrets && npm run -s pack:check"
+    "check": "npm run -s lint && npm run -s test && npm run -s test:probe && npm run -s typecheck && npm run -s secrets && npm run -s pack:check"
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.3",

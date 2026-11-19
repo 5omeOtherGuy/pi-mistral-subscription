@@ -81,6 +81,17 @@ def pi_probe(repo, auth, model, prefix):
         return {"model": model, "path": "pi", "exit": result.returncode, "events": events}
 
 
+def read_stream_usage(lines):
+    usage = {}
+    for line in lines:
+        if line.startswith(b"data: ") and line[6:].strip() != b"[DONE]":
+            usage = json.loads(line[6:]).get("usage") or usage
+    cached = (usage.get("prompt_tokens_details") or {}).get("cached_tokens")
+    if cached is None:
+        cached = usage.get("cached_prompt_tokens")
+    return {"input": usage.get("prompt_tokens"), "cached": cached, "output": usage.get("completion_tokens")}
+
+
 def direct_probe(key, model, prefix):
     opener = urllib.request.build_opener(NoRedirect())
     cache_key = str(uuid.uuid4())
@@ -98,15 +109,7 @@ def direct_probe(key, model, prefix):
         )
         try:
             with opener.open(request, timeout=45) as response:
-                usage = {}
-                for line in response:
-                    if line.startswith(b"data: ") and line[6:].strip() != b"[DONE]":
-                        usage = json.loads(line[6:]).get("usage") or usage
-                results.append({
-                    "http": response.status, "input": usage.get("prompt_tokens"),
-                    "cached": (usage.get("prompt_tokens_details") or {}).get("cached_tokens"),
-                    "output": usage.get("completion_tokens"),
-                })
+                results.append({"http": response.status, **read_stream_usage(response)})
         except urllib.error.HTTPError as error:
             results.append({"http": error.code})
             break
@@ -116,6 +119,10 @@ def direct_probe(key, model, prefix):
         messages = [messages[0], {"role": "assistant", "content": "OK"},
                     {"role": "user", "content": "Answer only OK again."}]
     return {"model": model, "path": "mistral-direct", "results": results}
+
+
+def is_token_count(value):
+    return type(value) is int and value >= 0
 
 
 def verify_pi_result(result):
@@ -138,11 +145,25 @@ def verify_pi_result(result):
     for raw, parsed in zip(usage, messages):
         if parsed["model"] != result["model"] or parsed["provider"] != "mistral" or parsed["stop"] not in {"stop", "length"}:
             return "unexpected assistant model, provider or stop reason"
-        if not isinstance(raw["input"], int) or not isinstance(parsed["input"], int):
-            return "missing input token counts"
-        cached = raw["cached"] or 0
+        cached = 0 if raw["cached"] is None else raw["cached"]
+        counts = (raw["input"], parsed["input"], raw["output"], parsed["output"], cached, parsed["cached"])
+        if not all(is_token_count(count) for count in counts):
+            return "missing or invalid token counts"
         if parsed["cached"] != cached or parsed["input"] + cached != raw["input"] or parsed["output"] != raw["output"]:
             return "Pi usage differs from provider usage"
+    return None
+
+
+def verify_direct_result(result):
+    turns = result["results"]
+    if len(turns) != 2 or any(turn.get("http") != 200 for turn in turns):
+        return "expected two successful direct requests"
+    for turn in turns:
+        if not is_token_count(turn.get("input")) or not is_token_count(turn.get("output")):
+            return "missing or invalid token counts"
+        cached = turn.get("cached")
+        if cached is not None and (not is_token_count(cached) or cached > turn["input"]):
+            return "invalid cached token count"
     return None
 
 
@@ -173,15 +194,10 @@ def main():
     for model in dict.fromkeys(args.models):
         prefix = make_prompt()
         result = pi_probe(repo, auth, model, prefix) if args.mode == "pi" else direct_probe(key, model, prefix)
-        if args.mode == "pi" and not result.get("failure"):
-            failure = verify_pi_result(result)
+        if not result.get("failure"):
+            failure = verify_pi_result(result) if args.mode == "pi" else verify_direct_result(result)
             if failure:
                 result["failure"] = failure
-        if args.mode == "direct" and (
-            len(result["results"]) != 2
-            or any(turn.get("http") != 200 or not isinstance(turn.get("input"), int) for turn in result["results"])
-        ):
-            result["failure"] = "expected two successful direct requests with usage"
         failed |= bool(result.get("failure"))
         print(json.dumps(result), flush=True)
     if failed:

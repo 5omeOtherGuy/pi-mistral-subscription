@@ -8,7 +8,7 @@ For a substantial change, open an issue or comment on an existing one to discuss
 
 ## Development
 
-Use Node.js 22.19.0 or newer. From the repository root, install dependencies and run the required checks:
+Use Node.js 22.19.0 or newer and Python 3. The gate uses Python's standard library to test the verification probe with synthetic evidence. From the repository root, install dependencies and run the required checks:
 
 ```sh
 npm ci --ignore-scripts
