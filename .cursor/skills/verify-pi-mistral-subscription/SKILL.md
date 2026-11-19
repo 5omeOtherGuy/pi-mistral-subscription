@@ -1,4 +1,5 @@
 ---
+
 name: verify-pi-mistral-subscription
 description: Verify the Mistral subscription extension through Pi's CLI, including subscription model selection, streaming usage, and native prompt caching. Use for repository release checks or to distinguish an extension regression from Pi or Mistral behavior.
 ---
