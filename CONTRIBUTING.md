@@ -8,14 +8,14 @@ For a substantial change, open an issue or comment on an existing one to discuss
 
 ## Development
 
-Use Node.js 22.19.0 or newer. From the repository root:
+Use Node.js 22.19.0 or newer. From the repository root, install dependencies and run the required checks:
 
 ```sh
 npm ci --ignore-scripts
 npm run check
 ```
 
-`npm run check` is the gate CI runs: Biome format and lint check, the tests, the TypeScript typecheck, a secretlint scan and `npm pack --dry-run`. `npx biome check --write .` fixes formatting. Include tests for behavior changes. The existing request tests use a local loopback server, so they do not need a Mistral account.
+CI runs `npm run check`. The command checks formatting, lint, types, and secrets, runs the tests, and previews the package contents. Run `npx biome check --write .` to fix formatting. Include tests for behavior changes.
 
 ## Verify user flows
 

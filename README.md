@@ -4,14 +4,13 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 A [Pi](https://github.com/earendil-works/pi) package that lets you use your Mistral subscription with Pi's built-in `mistral` provider.
-It adds browser sign-in through Mistral AI Studio to `/login`. Everything else comes from Pi: the models, their limits and prices, reasoning levels, streaming and prompt caching.
-It runs no proxy server and contains no credentials, tokens or API keys.
+It adds browser sign-in through Mistral AI Studio to `/login`. Pi supplies the model catalog, streaming, and prompt caching. The extension adjusts the catalog for signed-in subscribers.
 
 Install from `main` or a pinned [release tag](https://github.com/5omeOtherGuy/pi-mistral-subscription/releases). Changes land through reviewed pull requests with a passing gate.
 
 ## Install
 
-Requires Pi 0.99.0 or newer and Node.js 22.19.0 or newer; see [Compatibility](#compatibility).
+Use Pi 0.99.0 or newer and Node.js 22.19.0 or newer. See [Compatibility](#compatibility) for the tested versions.
 
 Install directly from this public GitHub repo:
 
@@ -161,12 +160,10 @@ Useful references when Mistral changes things:
 - [Mistral changelog](https://docs.mistral.ai/resources/changelogs): new model ids and deprecations.
 - pi-ai's `mistral-conversations` provider: how requests, reasoning and streaming are sent.
 
-See the [contributor guide](https://github.com/5omeOtherGuy/pi-mistral-subscription/blob/main/CONTRIBUTING.md) for development checks and the repository-local verification skill.
-
 ## Contributing, support and security
 
 - Bugs and feature requests: [open an issue](https://github.com/5omeOtherGuy/pi-mistral-subscription/issues/new/choose). Issues are triaged and pull requests reviewed within 7 days.
-- Contributions: [CONTRIBUTING.md](https://github.com/5omeOtherGuy/pi-mistral-subscription/blob/main/CONTRIBUTING.md). Everyone taking part follows the [Code of Conduct](https://github.com/5omeOtherGuy/pi-mistral-subscription/blob/main/CODE_OF_CONDUCT.md).
+- See the [contributor guide](https://github.com/5omeOtherGuy/pi-mistral-subscription/blob/main/CONTRIBUTING.md) for development checks and the verification skill. Everyone taking part follows the [Code of Conduct](https://github.com/5omeOtherGuy/pi-mistral-subscription/blob/main/CODE_OF_CONDUCT.md).
 - Vulnerabilities: report privately as described in [SECURITY.md](https://github.com/5omeOtherGuy/pi-mistral-subscription/blob/main/SECURITY.md).
 
 ## Licence
