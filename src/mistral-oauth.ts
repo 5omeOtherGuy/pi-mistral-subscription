@@ -30,11 +30,10 @@ type SignInProcess = {
   expiresAt: number;
 };
 
-type PollResult = {
-  status: "pending" | "completed" | "expired" | "denied" | "error";
-  exchangeToken?: string;
-  message?: string;
-};
+type PollResult =
+  | { status: "pending" | "expired" | "denied" }
+  | { status: "completed"; exchangeToken: string }
+  | { status: "error"; message?: string };
 
 const CANCELLED_MESSAGE = "Mistral browser sign-in was cancelled";
 
@@ -150,21 +149,22 @@ async function poll(fetch: FetchLike, pollUrl: string, signal: AbortSignal | und
   });
   if (payload === undefined) return { status: "expired" };
   if (!isRecord(payload)) throw new Error(`${message} response was malformed`);
-  const status = payload.status;
-  if (
-    status !== "pending" &&
-    status !== "completed" &&
-    status !== "expired" &&
-    status !== "denied" &&
-    status !== "error"
-  ) {
-    throw new Error("Mistral browser sign-in returned an unknown state");
+  const { status } = payload;
+  switch (status) {
+    case "pending":
+    case "expired":
+    case "denied":
+      return { status };
+    case "completed": {
+      const exchangeToken = optionalStringField(payload, "exchange_token");
+      if (!exchangeToken) throw new Error("Mistral browser sign-in completed without an exchange token");
+      return { status, exchangeToken };
+    }
+    case "error":
+      return { status, message: optionalStringField(payload, "message") };
+    default:
+      throw new Error("Mistral browser sign-in returned an unknown state");
   }
-  return {
-    status,
-    exchangeToken: optionalStringField(payload, "exchange_token"),
-    message: optionalStringField(payload, "message"),
-  };
 }
 
 async function waitForCompletion(
@@ -183,8 +183,7 @@ async function waitForCompletion(
         break;
       }
       case "completed":
-        if (result.exchangeToken) return result.exchangeToken;
-        throw new Error("Mistral browser sign-in completed without an exchange token");
+        return result.exchangeToken;
       case "expired":
         throw new Error("Mistral browser sign-in expired");
       case "denied":
