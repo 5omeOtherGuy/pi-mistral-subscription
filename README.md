@@ -1,15 +1,13 @@
 # pi-mistral-subscription
 
-Pi package: Mistral subscription sign-in for Pi's built-in `mistral` provider, through Mistral AI Studio.
-
-Status: released. People install it from `main` or a pinned [release tag](https://github.com/5omeOtherGuy/pi-mistral-subscription/releases); changes land only through reviewed pull requests with a green gate.
-
 [![gate](https://github.com/5omeOtherGuy/pi-mistral-subscription/actions/workflows/gate.yml/badge.svg?branch=main)](https://github.com/5omeOtherGuy/pi-mistral-subscription/actions/workflows/gate.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 A [Pi](https://github.com/earendil-works/pi) package that lets you use your Mistral subscription with Pi's built-in `mistral` provider.
 It adds browser sign-in through Mistral AI Studio to `/login`. Everything else comes from Pi: the models, their limits and prices, reasoning levels, streaming and prompt caching.
 It runs no proxy server and contains no credentials, tokens or API keys.
+
+Install from `main` or a pinned [release tag](https://github.com/5omeOtherGuy/pi-mistral-subscription/releases). Changes land through reviewed pull requests with a passing gate.
 
 ## Install
 
@@ -44,7 +42,7 @@ git clone https://github.com/5omeOtherGuy/pi-mistral-subscription
 pi install ./pi-mistral-subscription
 ```
 
-## Usage
+## Sign in
 
 Start Pi and sign in:
 
@@ -54,7 +52,9 @@ Start Pi and sign in:
 
 Choose **Sign in with an account**, then **Mistral**, and complete the browser sign-in with your Mistral Pro or higher account. Pi waits for the sign-in by itself, so you can open the link on any device.
 
-Then pick a model with `/model`, also if one was already selected, so that it picks up the changes below. Or start with one:
+If you cancel browser sign-in, Pi stops waiting even when a request is still pending. A late response does not complete the cancelled sign-in. This behavior ships in [v0.2.1](https://github.com/5omeOtherGuy/pi-mistral-subscription/releases/tag/v0.2.1).
+
+After sign-in, select a model with `/model` again to apply the subscription settings. You can also select a model when you start Pi:
 
 ```sh
 pi --model mistral/zai-glm-5-3 --thinking max
@@ -74,15 +74,13 @@ The sign-in returns a Mistral API key, which Pi stores in `auth.json`. Pi keeps 
 
 Without a sign-in, this package changes nothing about the `mistral` provider.
 
-### Usage and billing
+## Usage and billing
 
 Mistral plans include a monthly usage budget shared across Studio, the API and Vibe Code, so this is not a flat rate. The Admin Panel lists sign-in requests as usage type **Vibe Code** and plain API keys as **Completion** (checked 2026-10-31). Pay-as-you-go is off by default.
 
 Pi shows the API-equivalent price of what you use. That figure is not a bill.
 
-## Configuration
-
-### Models
+## Model reference
 
 The models come from Pi's catalog, which Pi keeps up to date. While you are signed in, this package changes a few things, because Pi's catalog also describes models a subscription cannot use or leaves out what the API accepts:
 
@@ -107,7 +105,7 @@ Reasoning levels by model, checked against the live API on 2026-10-31:
 
 Small does not always see images: it often answers that it received none, more so with reasoning on, and Mistral's API does the same without Pi. Use `--thinking off` and retry, or pick Medium 3.5 for images.
 
-### Moving from `mistral-subscription`
+## Migrate from `mistral-subscription`
 
 Earlier releases added a separate provider called `mistral-subscription`. It still works in this release and is deprecated:
 
@@ -119,7 +117,7 @@ Earlier releases added a separate provider called `mistral-subscription`. It sti
 
 ## Compatibility
 
-- **Pi**: 0.99.0 or newer (`peerDependencies`). CI tests against Pi 1.3.0, last verified 2026-10-17.
+- **Pi**: 0.99.0 or newer (`peerDependencies`). CI installs Pi 1.4.0 from the committed lockfile.
 - **Node.js**: 22.19.0 or newer (`engines`). CI runs Node 22 on Ubuntu 24.04.
 - **Mistral**: a Pro or higher subscription with access through Mistral AI Studio.
 
@@ -149,9 +147,9 @@ Project layout:
   Streaming tests use a loopback HTTP server to verify serialized requests;
   no tests contact Mistral or use real credentials.
 
-### Changing models
+### Change models
 
-Pi owns the catalog, so a new Mistral model needs no change here. Change [`src/mistral-overlay.ts`](src/mistral-overlay.ts) only when a subscription key behaves differently from what Pi's catalog says, and add a test to `tests/mistral-overlay.test.ts`. To try it for real, sign in with `/login` and run:
+Pi owns the catalog, so a new Mistral model needs no change here. Change [`src/mistral-overlay.ts`](src/mistral-overlay.ts) only when a subscription key behaves differently from what Pi's catalog says, and add a test to `tests/mistral-overlay.test.ts`. Live requests spend subscription quota and require the owner's authorization. Once authorized, sign in with `/login` and run:
 
 ```sh
 pi -e . --model mistral/<api-model-id>
@@ -163,13 +161,13 @@ Useful references when Mistral changes things:
 - [Mistral changelog](https://docs.mistral.ai/resources/changelogs): new model ids and deprecations.
 - pi-ai's `mistral-conversations` provider: how requests, reasoning and streaming are sent.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
+See the [contributor guide](https://github.com/5omeOtherGuy/pi-mistral-subscription/blob/main/CONTRIBUTING.md) for development checks and the repository-local verification skill.
 
 ## Contributing, support and security
 
 - Bugs and feature requests: [open an issue](https://github.com/5omeOtherGuy/pi-mistral-subscription/issues/new/choose). Issues are triaged and pull requests reviewed within 7 days.
-- Contributions: [CONTRIBUTING.md](CONTRIBUTING.md). Everyone taking part follows the [Code of Conduct](CODE_OF_CONDUCT.md).
-- Vulnerabilities: report privately as described in [SECURITY.md](SECURITY.md).
+- Contributions: [CONTRIBUTING.md](https://github.com/5omeOtherGuy/pi-mistral-subscription/blob/main/CONTRIBUTING.md). Everyone taking part follows the [Code of Conduct](https://github.com/5omeOtherGuy/pi-mistral-subscription/blob/main/CODE_OF_CONDUCT.md).
+- Vulnerabilities: report privately as described in [SECURITY.md](https://github.com/5omeOtherGuy/pi-mistral-subscription/blob/main/SECURITY.md).
 
 ## Licence
 

@@ -6,8 +6,6 @@ Contributions are welcome. Issues are triaged and pull requests reviewed within 
 
 For a substantial change, open an issue or comment on an existing one to discuss the approach. Small fixes can go straight to a pull request. Keep pull requests focused, explain what changed and why, and link any relevant issue. If a pull request addresses only part of an issue, reference it without a closing keyword.
 
-Small fixes are welcome directly; larger changes start with an issue, and `npm run check` must pass.
-
 ## Development
 
 Use Node.js 22.19.0 or newer. From the repository root:
@@ -18,6 +16,12 @@ npm run check
 ```
 
 `npm run check` is the gate CI runs: Biome format and lint check, the tests, the TypeScript typecheck, a secretlint scan and `npm pack --dry-run`. `npx biome check --write .` fixes formatting. Include tests for behavior changes. The existing request tests use a local loopback server, so they do not need a Mistral account.
+
+## Verify user flows
+
+Use the [verification skill](.cursor/skills/verify-pi-mistral-subscription/SKILL.md) for sign-in, model streaming, and prompt-cache checks. Its [feature map](.cursor/skills/verify-pi-mistral-subscription/features/README.md) explains which evidence each check provides.
+
+The gate uses fake responses and a loopback server. Live requests spend subscription quota. Run them only when the owner authorizes them, including direct Mistral controls. To inspect local readiness without a model request, run the skill's `--mode doctor` command.
 
 ## Model and catalog changes
 

@@ -6,7 +6,7 @@ description: Verify the Mistral subscription extension through Pi's CLI, includi
 
 # Verify Pi Mistral subscription
 
-## Launch and doctor
+## Check local readiness
 
 From the repository root, run `npm ci --ignore-scripts` and `npm run check` through mise on the P720. This covers fake-fetch browser sign-in and loopback streaming. The live driver uses the installed Pi CLI with the extension from `--repo`, a disposable Pi configuration, no saved session, no other extensions, and no tools.
 
@@ -19,7 +19,7 @@ python "$probe" --repo "$PWD" --mode doctor
 
 The doctor reports Pi's version and confirms an unexpired stored subscription credential. The live evidence hooks were exercised on Pi 1.5.2. The driver makes no credential copy and never prints one. Set `--auth` for a nondefault auth path. If sign-in is unavailable, use Pi's documented browser flow in an authorized session and run doctor again. The driver does not change the stored sign-in.
 
-## Drive and evidence
+## Verify streaming and cache accounting
 
 The project gate is hermetic. Run the live driver only when the owner authorizes Mistral quota use. Review [Mistral's current prices](https://docs.mistral.ai/inference/pricing?region=eu) before selecting models. The driver accepts only inexpensive model IDs, sends two short-output turns per model, and uses a fresh synthetic prefix and routing key on each run.
 
@@ -31,7 +31,7 @@ Keep the JSON summary in the task conversation or a user-requested artifact. It 
 
 If cached tokens are missing or zero, inspect the routing, prefix and token counts first. Use [the cache feature map](features/prompt-caching.md) for the direct Mistral control and attribution. Streaming with a valid cache key can still produce a miss.
 
-## Cleanup
+## Remove temporary state
 
 The driver removes its temporary state and evidence file after each model. Retain the sanitized summary from stdout and delete any task-owned copy built for the run. The existing Pi sign-in and sessions remain available.
 
